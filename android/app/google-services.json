@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "263099472315",
+    "project_id": "custech-c938f",
+    "storage_bucket": "custech-c938f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:263099472315:android:25eba331338541d68acc9e",
+        "android_client_info": {
+          "package_name": "com.baghirabi.custech"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "263099472315-sldng06gsmvaf3t7m52oitsdsocmp7t8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.baghirabi.custech",
+            "certificate_hash": "53ca80a68a93506416631c1e25af45ca35ac932a"
+          }
+        },
+        {
+          "client_id": "263099472315-h8447jtl93etksqugralsu67kkm6unkf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCMPu3n9c9fg2vc9nvnv0zfN6G1MGEH2Pw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "263099472315-h8447jtl93etksqugralsu67kkm6unkf.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "263099472315-62prpjleljk85m594oopf0ahidkpv4bd.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.baghirabi.custech"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

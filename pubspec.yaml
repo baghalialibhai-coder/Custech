@@ -1,0 +1,163 @@
+name: custech
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Localization
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
+
+  # UI
+  cupertino_icons: ^1.0.8
+  google_fonts: ^8.2.1
+  flutter_native_splash: ^2.4.7
+
+  # Firebase
+  firebase_core: ^4.11.0
+  firebase_auth: ^6.5.4
+  flutter_sound: ^9.2.13
+  cloud_firestore: ^6.6.0
+  audioplayers: ^6.0.0
+  firebase_storage: ^13.4.3
+#  firebase_messaging: ^16.2.2
+  cloud_functions: ^6.3.1
+  firebase_app_check: ^0.4.5
+
+  # Maps & Location
+  geocoding: ^2.1.1
+  google_maps_flutter: ^2.18.0
+  latlong2: ^0.9.0
+  mapbox_maps_flutter: ^2.28.0
+  geolocator: ^14.0.3
+  location: ^5.0.0
+
+  # Social Sign-In
+  google_sign_in: ^7.2.0
+  sign_in_with_apple: ^8.1.0
+
+  # State Management
+  flutter_riverpod: ^3.3.2
+  riverpod_annotation: ^4.0.3
+  rxdart: ^0.28.0
+
+  # Storage
+  shared_preferences: ^2.5.5
+  sqflite: ^2.4.2+1
+  path: ^1.9.1
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.6
+
+  # ❌ REMOVED: record package
+  # record: ^5.0.0
+  # record_platform_interface: ^1.0.0
+
+  # ✅ Alternative for audio if needed later
+  # flutter_sound: ^9.2.13
+
+  # Utilities
+  image_picker: ^1.2.3
+  permission_handler: ^12.0.1
+  url_launcher: ^6.3.2
+  http: ^1.6.0
+  connectivity_plus: ^7.2.0
+  device_info_plus: ^13.2.0
+  package_info_plus: ^10.2.0
+
+  # Notifications
+  onesignal_flutter: ^5.1.0
+  flutter_local_notifications: ^17.2.3
+
+  # Web & AI
+  youtube_player_iframe: ^6.0.2
+  flutter_inappwebview: ^6.1.5
+  google_generative_ai: ^0.4.7
+  flutter_dotenv: ^6.0.1
+  agora_rtc_engine: ^6.5.2
+  emoji_picker_flutter: ^3.0.0
+  video_player: ^2.8.0
+  chewie: ^1.7.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+# ============================================================
+# FLUTTER LAUNCHER ICON CONFIGURATION
+# ============================================================
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/authImg/app_icon.png"
+  remove_alpha_ios: true
+
+# ============================================================
+# FLUTTER
+# ============================================================
+flutter:
+  uses-material-design: true
+
+  # ==========================================================
+  # ASSETS
+  # ==========================================================
+  assets:
+    - assets/images/customerUI/acrepair.png
+    - assets/images/customerUI/bikerepair.png
+    - assets/images/customerUI/building.png
+    - assets/images/customerUI/car machanic.png
+    - assets/images/customerUI/carrepair.png
+    - assets/images/customerUI/electrician.png
+    - assets/images/customerUI/gyser.png
+    - assets/images/customerUI/messon.png
+    - assets/images/customerUI/petroleum.png
+    - assets/images/customerUI/plumber.png
+    - assets/images/customerUI/rcc.png
+    - assets/images/customerUI/refrigerator.png
+    - assets/images/customerUI/solarinstall.png
+    - assets/images/customerUI/washingmachine.png
+
+
+
+
+
+
+
+
+
+    - assets/images/authImg/app_icon.png
+    - assets/images/authImg/applelogo.png
+    - assets/images/authImg/google-logo.png
+    - assets/images/TService/Gservice.png
+    - assets/images/CService/cusBanner.png
+    - assets/images/CService/Acrepair.png
+    - assets/images/CService/washingmachine.png
+    - assets/images/CService/waterpurifirer.png
+    - assets/images/CService/microwave.png
+    - assets/images/CService/chimney.png
+    - assets/images/CService/gyser.png
+    - assets/images/CService/camera.png
+    - assets/images/CService/plumbing.png
+    - assets/images/CService/carpenter.png
+    - assets/images/CService/water tank cleaning.png
+    - assets/images/CService/electrical work.png
+    - assets/images/CService/furniture.png
+    - assets/images/CService/Bconstructor.png
+    - assets/images/CService/car.png
+    - assets/images/CService/motorBike.png
+    - assets/images/CService/tv repair.png
+    - assets/images/CService/airCooler.png
+    - assets/images/CService/refrigerator.png
+    - assets/images/CService/housepainting.png
+    - assets/images/CService/doorLock.png
+    - language/translation/
+    - .env
