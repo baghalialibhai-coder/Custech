@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../core/models/job_model.dart';
 import '../core/constants/categories.dart';
-import 'one_Signal_Service.dart';
 
 class JobService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -28,9 +27,9 @@ class JobService {
   // ✅ GET AVAILABLE JOBS (Filtered by Categories + Pincode)
   // ============================================================
   Stream<List<JobModel>> getAvailableJobs(
-      List<String> categories,
-      String? pincode,
-      ) {
+    List<String> categories,
+    String? pincode,
+  ) {
     if (categories.isEmpty) {
       return Stream.value([]);
     }
@@ -98,25 +97,16 @@ class JobService {
   }
 
   // ============================================================
-  // ✅ ACCEPT JOB + NOTIFY CUSTOMER
+  // ✅ ACCEPT JOB
   // ============================================================
   Future<void> acceptJob(String jobId) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception('Not logged in');
 
-    // ✅ Get technician details
     final userDoc = await _firestore.collection('users').doc(user.uid).get();
     final userData = userDoc.data() ?? {};
     final technicianName = userData['displayName'] ?? userData['name'] ?? 'Technician';
 
-    // ✅ Get task details
-    final taskDoc = await _firestore.collection('tasks').doc(jobId).get();
-    if (!taskDoc.exists) throw Exception('Task not found');
-    final taskData = taskDoc.data()!;
-    final customerId = taskData['customerId'] ?? '';
-    final category = taskData['category'] ?? 'Service';
-
-    // ✅ Update job
     await _firestore.collection('tasks').doc(jobId).update({
       'status': 'accepted',
       'technicianId': user.uid,
@@ -126,35 +116,15 @@ class JobService {
     });
 
     print('✅ Job accepted: $jobId by $technicianName');
-
-    // ✅ Notify customer
-    if (customerId.isNotEmpty) {
-      await OneSignalNotificationService.notifyTaskAccepted(
-        customerId: customerId,
-        taskId: jobId,
-        category: category,
-        technicianName: technicianName,
-        taskTitle: '',
-      );
-      print('📤 Notification sent to customer');
-    }
   }
 
   // ============================================================
-  // ✅ REJECT JOB + NOTIFY CUSTOMER
+  // ✅ REJECT JOB
   // ============================================================
   Future<void> rejectJob(String jobId) async {
     final technicianId = _auth.currentUser?.uid;
     if (technicianId == null) throw Exception('Not logged in');
 
-    // ✅ Get task details
-    final taskDoc = await _firestore.collection('tasks').doc(jobId).get();
-    if (!taskDoc.exists) throw Exception('Task not found');
-    final taskData = taskDoc.data()!;
-    final customerId = taskData['customerId'] ?? '';
-    final category = taskData['category'] ?? 'Service';
-
-    // ✅ Update job
     await _firestore.collection('tasks').doc(jobId).update({
       'status': 'rejected',
       'rejectedAt': FieldValue.serverTimestamp(),
@@ -163,35 +133,15 @@ class JobService {
     });
 
     print('✅ Job rejected: $jobId');
-
-    // ✅ Notify customer
-    if (customerId.isNotEmpty) {
-      await OneSignalNotificationService.notifyTaskRejected(
-        customerId: customerId,
-        taskId: jobId,
-        category: category,
-        taskTitle: '',
-      );
-      print('📤 Notification sent to customer');
-    }
   }
 
   // ============================================================
-  // ✅ START JOB + NOTIFY CUSTOMER
+  // ✅ START JOB
   // ============================================================
   Future<void> startJob(String jobId) async {
     final technicianId = _auth.currentUser?.uid;
     if (technicianId == null) throw Exception('Not logged in');
 
-    // ✅ Get task details
-    final taskDoc = await _firestore.collection('tasks').doc(jobId).get();
-    if (!taskDoc.exists) throw Exception('Task not found');
-    final taskData = taskDoc.data()!;
-    final customerId = taskData['customerId'] ?? '';
-    final category = taskData['category'] ?? 'Service';
-    final technicianName = taskData['technicianName'] ?? 'Technician';
-
-    // ✅ Update job
     await _firestore.collection('tasks').doc(jobId).update({
       'status': 'inProgress',
       'startedAt': FieldValue.serverTimestamp(),
@@ -199,85 +149,39 @@ class JobService {
     });
 
     print('✅ Job started: $jobId');
-
-    // ✅ Notify customer
-    if (customerId.isNotEmpty) {
-      await OneSignalNotificationService.notifyTaskInProgress(
-        customerId: customerId,
-        taskId: jobId,
-        category: category,
-        technicianName: technicianName, taskTitle: '',
-      );
-      print('📤 Notification sent to customer');
-    }
   }
 
   // ============================================================
-  // ✅ COMPLETE JOB + NOTIFY CUSTOMER
+  // ✅ COMPLETE JOB
   // ============================================================
   Future<void> completeJob(
-      String jobId, {
-        double? rating,
-        String? review,
-      }) async {
+    String jobId, {
+    double? rating,
+    String? review,
+  }) async {
     final technicianId = _auth.currentUser?.uid;
     if (technicianId == null) throw Exception('Not logged in');
 
-    // ✅ Get task details
-    final taskDoc = await _firestore.collection('tasks').doc(jobId).get();
-    if (!taskDoc.exists) throw Exception('Task not found');
-    final taskData = taskDoc.data()!;
-    final customerId = taskData['customerId'] ?? '';
-    final category = taskData['category'] ?? 'Service';
-    final technicianName = taskData['technicianName'] ?? 'Technician';
-
-    // ✅ Prepare update data
     Map<String, dynamic> updateData = {
       'status': 'completed',
       'completedAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
 
-    if (rating != null) {
-      updateData['customerRating'] = rating;
-    }
-    if (review != null && review.isNotEmpty) {
-      updateData['customerReview'] = review;
-    }
+    if (rating != null) updateData['customerRating'] = rating;
+    if (review != null && review.isNotEmpty) updateData['customerReview'] = review;
 
-    // ✅ Update job
     await _firestore.collection('tasks').doc(jobId).update(updateData);
-
     print('✅ Job completed: $jobId');
-
-    // ✅ Notify customer
-    if (customerId.isNotEmpty) {
-      await OneSignalNotificationService.notifyTaskCompleted(
-        customerId: customerId,
-        taskId: jobId,
-        category: category,
-        technicianName: technicianName, taskTitle: '',
-      );
-      print('📤 Notification sent to customer');
-    }
   }
 
   // ============================================================
-  // ✅ CANCEL JOB + NOTIFY BOTH
+  // ✅ CANCEL JOB
   // ============================================================
   Future<void> cancelJob(String jobId, String reason) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception('Not logged in');
 
-    // ✅ Get task details
-    final taskDoc = await _firestore.collection('tasks').doc(jobId).get();
-    if (!taskDoc.exists) throw Exception('Task not found');
-    final taskData = taskDoc.data()!;
-    final customerId = taskData['customerId'] ?? '';
-    final technicianId = taskData['technicianId'] ?? '';
-    final category = taskData['category'] ?? 'Service';
-
-    // ✅ Update job
     await _firestore.collection('tasks').doc(jobId).update({
       'status': 'cancelled',
       'cancelledAt': FieldValue.serverTimestamp(),
@@ -287,17 +191,6 @@ class JobService {
     });
 
     print('✅ Job cancelled: $jobId');
-
-    // ✅ Notify both parties
-    await OneSignalNotificationService.notifyTaskCancelled(
-      customerId: customerId,
-      technicianId: technicianId,
-      taskId: jobId,
-      category: category,
-      reason: reason,
-      recipientId: '', taskTitle: '',
-    );
-    print('📤 Notification sent to both parties');
   }
 
   // ============================================================
@@ -398,94 +291,11 @@ class JobService {
   }
 
   // ============================================================
-  // ✅ GET TECHNICIAN TASKS BY STATUS
-  // ============================================================
-  Stream<List<JobModel>> getTechnicianTasksByStatus(JobStatus status) {
-    final technicianId = _auth.currentUser?.uid;
-    if (technicianId == null) {
-      return Stream.value([]);
-    }
-
-    String statusString;
-    switch (status) {
-      case JobStatus.available:
-        statusString = 'open';
-        break;
-      case JobStatus.accepted:
-        statusString = 'accepted';
-        break;
-      case JobStatus.inProgress:
-        statusString = 'inProgress';
-        break;
-      case JobStatus.completed:
-        statusString = 'completed';
-        break;
-      case JobStatus.cancelled:
-        statusString = 'cancelled';
-        break;
-      case JobStatus.rejected:
-        statusString = 'rejected';
-        break;
-    }
-
-    return _firestore
-        .collection('tasks')
-        .where('technicianId', isEqualTo: technicianId)
-        .where('status', isEqualTo: statusString)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) => JobModel.fromFirestore(doc)).toList();
-    });
-  }
-
-  // ============================================================
-  // ✅ GET CUSTOMER TASKS BY STATUS
-  // ============================================================
-  Stream<List<JobModel>> getCustomerTasksByStatus(JobStatus status) {
-    final customerId = _auth.currentUser?.uid;
-    if (customerId == null) {
-      return Stream.value([]);
-    }
-
-    String statusString;
-    switch (status) {
-      case JobStatus.available:
-        statusString = 'open';
-        break;
-      case JobStatus.accepted:
-        statusString = 'accepted';
-        break;
-      case JobStatus.inProgress:
-        statusString = 'inProgress';
-        break;
-      case JobStatus.completed:
-        statusString = 'completed';
-        break;
-      case JobStatus.cancelled:
-        statusString = 'cancelled';
-        break;
-      case JobStatus.rejected:
-        statusString = 'rejected';
-        break;
-    }
-
-    return _firestore
-        .collection('tasks')
-        .where('customerId', isEqualTo: customerId)
-        .where('status', isEqualTo: statusString)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) => JobModel.fromFirestore(doc)).toList();
-    });
-  }
-
-  // ============================================================
   // ✅ CREATE JOB (Customer Creates)
   // ============================================================
   Future<String> createJob(JobModel job) async {
     final docRef = await _firestore.collection('tasks').add(job.toFirestore());
+    await docRef.update({'id': docRef.id});
     print('✅ Job created: ${docRef.id}');
     return docRef.id;
   }

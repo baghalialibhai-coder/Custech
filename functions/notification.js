@@ -15,12 +15,39 @@ const db = admin.firestore();
 const messaging = admin.messaging();
 
 /**
+ * Custom Notification Payload Options with Custom Sound
+ */
+function buildFcmPayload({ title, body, data = {} }) {
+  return {
+    notification: { title, body },
+    android: {
+      notification: {
+        sound: "custech_notification",
+        channelId: "custech_channel",
+        priority: "high",
+      },
+    },
+    apns: {
+      payload: {
+        aps: {
+          sound: "custech_notification.aiff",
+          contentAvailable: true,
+        },
+      },
+    },
+    data: {
+      ...data,
+      click_action: "FLUTTER_NOTIFICATION_CLICK",
+    },
+  };
+}
+
+/**
  * Helper to fetch FCM tokens for a user from 'users', 'merchants', or 'technicians' collections
  */
 async function getUserFcmTokens(userId) {
   if (!userId) return [];
   try {
-    // Check 'users' collection
     const userDoc = await db.collection("users").doc(userId).get();
     if (userDoc.exists) {
       const data = userDoc.data();
@@ -28,7 +55,6 @@ async function getUserFcmTokens(userId) {
       if (tokens.length > 0) return tokens;
     }
 
-    // Check 'merchants' collection
     const merchantDoc = await db.collection("merchants").doc(userId).get();
     if (merchantDoc.exists) {
       const data = merchantDoc.data();
@@ -36,7 +62,6 @@ async function getUserFcmTokens(userId) {
       if (tokens.length > 0) return tokens;
     }
 
-    // Check 'technicians' collection
     const techDoc = await db.collection("technicians").doc(userId).get();
     if (techDoc.exists) {
       const data = techDoc.data();
@@ -51,7 +76,6 @@ async function getUserFcmTokens(userId) {
 
 /**
  * 1. TRIGGER: Chat Message Created (/messages/{messageId})
- * Sends real-time FCM Push Notification to the message recipient (Customer, Technician, or Merchant).
  */
 exports.onMessageCreated = onDocumentCreated(
   "messages/{messageId}",
@@ -72,7 +96,7 @@ exports.onMessageCreated = onDocumentCreated(
     const body = message && message.length > 100 ? `${message.substring(0, 100)}...` : message || "Sent you a message";
 
     try {
-      // 1. Create Notification document in Firestore
+      // 1. Create Notification in Firestore
       const notificationRef = db.collection("notifications").doc();
       await notificationRef.set({
         notificationId: notificationRef.id,
@@ -89,35 +113,106 @@ exports.onMessageCreated = onDocumentCreated(
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
-      // 2. Fetch Receiver's FCM Tokens
+      // 2. Send FCM Multicast
       const fcmTokens = await getUserFcmTokens(receiverId);
 
       if (fcmTokens.length > 0) {
-        const response = await messaging.sendEachForMulticast({
-          tokens: fcmTokens,
-          notification: { title, body },
+        const payload = buildFcmPayload({
+          title,
+          body,
           data: {
             type: "chat_message",
             taskId: taskId || "",
             senderId: senderId,
             senderName: senderName || "",
             senderRole: senderRole || "",
-            click_action: "FLUTTER_NOTIFICATION_CLICK",
           },
         });
-        logger.info(`FCM chat notification sent to ${receiverId}. Success: ${response.successCount}, Failures: ${response.failureCount}`);
-      } else {
-        logger.info(`No FCM tokens found for receiver ${receiverId}`);
+
+        const response = await messaging.sendEachForMulticast({
+          tokens: fcmTokens,
+          ...payload,
+        });
+        logger.info(`FCM chat notification sent to ${receiverId}. Success: ${response.successCount}`);
       }
     } catch (error) {
-      logger.error("Error in onMessageCreated notification trigger:", error);
+      logger.error("Error in onMessageCreated trigger:", error);
     }
   }
 );
 
 /**
- * 2. TRIGGER: Task Created or Updated (/tasks/{taskId})
- * Notifies Customer / Technician when a task is created or status changes.
+ * 2. TRIGGER: Task Created (/tasks/{taskId})
+ * Notifies matching technicians when a customer posts a new task.
+ */
+exports.onTaskCreated = onDocumentCreated(
+  "tasks/{taskId}",
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const taskData = snap.data();
+    const { category, customerName, title, pincode } = taskData;
+
+    const taskTitle = title || category || "New Service Task";
+    logger.info(`🛠️ Task Created: "${taskTitle}" in category "${category}"`);
+
+    try {
+      // Find matching technicians
+      let query = db.collection("technicians");
+      if (category) {
+        query = query.where("categories", "array-contains", category);
+      }
+      const techSnap = await query.get();
+
+      if (techSnap.empty) {
+        logger.info(`No matching technicians found for category ${category}`);
+        return;
+      }
+
+      const techIds = techSnap.docs.map((doc) => doc.id);
+      logger.info(`Found ${techIds.length} technicians for new task ${event.params.taskId}`);
+
+      const notifTitle = `🆕 New Task Request: ${category || "Service"}`;
+      const notifBody = `${customerName || "A Customer"} requested a task for "${taskTitle}".`;
+
+      for (const techId of techIds) {
+        // Save Notification in Firestore
+        const notificationRef = db.collection("notifications").doc();
+        await notificationRef.set({
+          notificationId: notificationRef.id,
+          userId: techId,
+          title: notifTitle,
+          body: notifBody,
+          taskId: event.params.taskId,
+          type: "new_task",
+          isRead: false,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        // Send FCM Notification with Custom Sound
+        const fcmTokens = await getUserFcmTokens(techId);
+        if (fcmTokens.length > 0) {
+          const payload = buildFcmPayload({
+            title: notifTitle,
+            body: notifBody,
+            data: {
+              type: "new_task",
+              taskId: event.params.taskId,
+            },
+          });
+          await messaging.sendEachForMulticast({ tokens: fcmTokens, ...payload });
+        }
+      }
+    } catch (error) {
+      logger.error("Error in onTaskCreated trigger:", error);
+    }
+  }
+);
+
+/**
+ * 3. TRIGGER: Task Updated (/tasks/{taskId})
+ * Notifies Customer / Technician when task status changes.
  */
 exports.onTaskUpdated = onDocumentUpdated(
   "tasks/{taskId}",
@@ -130,7 +225,7 @@ exports.onTaskUpdated = onDocumentUpdated(
 
     if (oldStatus === newStatus) return;
 
-    const { customerId, technicianId, title, category } = afterData;
+    const { customerId, technicianId, title, category, technicianName } = afterData;
     const taskTitle = title || category || "Service Task";
 
     logger.info(`🛠️ Task status changed: "${taskTitle}" (${oldStatus} -> ${newStatus})`);
@@ -143,7 +238,7 @@ exports.onTaskUpdated = onDocumentUpdated(
       case "accepted":
         recipientId = customerId;
         notificationTitle = "🛠️ Task Accepted!";
-        notificationBody = `Technician has accepted your request for "${taskTitle}".`;
+        notificationBody = `${technicianName || "Technician"} has accepted your request for "${taskTitle}".`;
         break;
       case "inProgress":
         recipientId = customerId;
@@ -156,7 +251,7 @@ exports.onTaskUpdated = onDocumentUpdated(
         notificationBody = `Your task "${taskTitle}" has been marked as completed.`;
         break;
       case "cancelled":
-        recipientId = customerId === beforeData.lastUpdatedBy ? technicianId : customerId;
+        recipientId = customerId === afterData.cancelledBy ? technicianId : customerId;
         notificationTitle = "❌ Task Cancelled";
         notificationBody = `The task "${taskTitle}" was cancelled.`;
         break;
@@ -184,30 +279,26 @@ exports.onTaskUpdated = onDocumentUpdated(
       const fcmTokens = await getUserFcmTokens(recipientId);
 
       if (fcmTokens.length > 0) {
-        await messaging.sendEachForMulticast({
-          tokens: fcmTokens,
-          notification: {
-            title: notificationTitle,
-            body: notificationBody,
-          },
+        const payload = buildFcmPayload({
+          title: notificationTitle,
+          body: notificationBody,
           data: {
             type: "task_status",
             taskId: event.params.taskId,
             status: newStatus,
-            click_action: "FLUTTER_NOTIFICATION_CLICK",
           },
         });
+        await messaging.sendEachForMulticast({ tokens: fcmTokens, ...payload });
         logger.info(`Task status notification sent to ${recipientId}`);
       }
     } catch (error) {
-      logger.error("Error in onTaskUpdated notification trigger:", error);
+      logger.error("Error in onTaskUpdated trigger:", error);
     }
   }
 );
 
 /**
- * 3. TRIGGER: Shop Visit Recorded (/shop_visits/{visitId})
- * Notifies Merchant when a visitor views their shop.
+ * 4. TRIGGER: Shop Visit Recorded (/shop_visits/{visitId})
  */
 exports.onShopVisitCreated = onDocumentCreated(
   "shop_visits/{visitId}",
@@ -250,17 +341,17 @@ exports.onShopVisitCreated = onDocumentCreated(
       const fcmTokens = await getUserFcmTokens(merchantId);
 
       if (fcmTokens.length > 0) {
-        await messaging.sendEachForMulticast({
-          tokens: fcmTokens,
-          notification: { title, body },
+        const payload = buildFcmPayload({
+          title,
+          body,
           data: {
             notificationId: notificationRef.id,
             merchantId: merchantId,
             visitorId: visitorId,
             type: "shop_visit",
-            click_action: "FLUTTER_NOTIFICATION_CLICK",
           },
         });
+        await messaging.sendEachForMulticast({ tokens: fcmTokens, ...payload });
         logger.info(`Shop visit FCM sent to merchant ${merchantId}`);
       }
     } catch (error) {
@@ -270,8 +361,7 @@ exports.onShopVisitCreated = onDocumentCreated(
 );
 
 /**
- * 4. SCHEDULED TASK: Automated 30-Day Notification Cleanup
- * Runs daily at midnight.
+ * 5. SCHEDULED TASK: Automated 30-Day Notification Cleanup
  */
 exports.cleanupOldNotifications = onSchedule(
   "every 24 hours",
@@ -303,7 +393,7 @@ exports.cleanupOldNotifications = onSchedule(
 );
 
 /**
- * 5. CALLABLE FUNCTION: Mark Notification as Read / Seen
+ * 6. CALLABLE FUNCTION: Mark Notification as Read / Seen
  */
 exports.markNotificationSeen = onCall(async (request) => {
   const notificationId = request.data.notificationId;
