@@ -134,6 +134,7 @@ class JobService {
         taskId: jobId,
         category: category,
         technicianName: technicianName,
+        taskTitle: '',
       );
       print('📤 Notification sent to customer');
     }
@@ -169,6 +170,7 @@ class JobService {
         customerId: customerId,
         taskId: jobId,
         category: category,
+        taskTitle: '',
       );
       print('📤 Notification sent to customer');
     }
@@ -204,7 +206,7 @@ class JobService {
         customerId: customerId,
         taskId: jobId,
         category: category,
-        technicianName: technicianName,
+        technicianName: technicianName, taskTitle: '',
       );
       print('📤 Notification sent to customer');
     }
@@ -254,7 +256,7 @@ class JobService {
         customerId: customerId,
         taskId: jobId,
         category: category,
-        technicianName: technicianName,
+        technicianName: technicianName, taskTitle: '',
       );
       print('📤 Notification sent to customer');
     }
@@ -293,6 +295,7 @@ class JobService {
       taskId: jobId,
       category: category,
       reason: reason,
+      recipientId: '', taskTitle: '',
     );
     print('📤 Notification sent to both parties');
   }

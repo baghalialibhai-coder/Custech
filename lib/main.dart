@@ -1,6 +1,7 @@
 // lib/main.dart
 
 import 'package:custech/services/one_Signal_Service.dart';
+import 'package:custech/services/fcm_notification_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -65,38 +66,11 @@ void main() async {
     print('❌ Google Maps API Key not found');
   }
 
-  // ✅ Check OneSignal credentials
-  _checkOneSignalCredentials();
-
-  // ✅ Initialize OneSignal
-  await OneSignalNotificationService.initialize();
-
-  // ✅ Retry OneSignal ID after 3 seconds
-  Future.delayed(const Duration(seconds: 3), () {
-    OneSignalNotificationService.saveCurrentUserOneSignalId();
-  });
+  // ✅ Initialize FCM Notification Service for Node.js Cloud Functions
+  await FcmNotificationService.initialize();
 
   // ✅ Run App with Lifecycle Observer
   runApp(const ProviderScope(child: MyApp()));
-}
-
-// ✅ Check OneSignal Credentials
-void _checkOneSignalCredentials() {
-  final appId = dotenv.env['OneSignal_App_ID'] ?? '';
-  final apiKey = dotenv.env['one_Signal_Api_Key'] ?? '';
-
-  print('🔍 OneSignal Credentials Check:');
-  print('App ID: ${appId.isNotEmpty ? appId.substring(0, 8) : 'MISSING'}... (Length: ${appId.length})');
-  print('API Key: ${apiKey.isNotEmpty ? apiKey.substring(0, 8) : 'MISSING'}... (Length: ${apiKey.length})');
-
-  if (appId.isEmpty || apiKey.isEmpty) {
-    print('❌ OneSignal credentials MISSING!');
-    print('💡 Add to .env file:');
-    print('   OneSignal_App_ID=your_app_id');
-    print('   one_Signal_Api_Key=your_rest_api_key');
-  } else {
-    print('✅ OneSignal credentials found');
-  }
 }
 
 // ============================================================

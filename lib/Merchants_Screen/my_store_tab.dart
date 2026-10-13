@@ -19,6 +19,7 @@ class MyStoreTab extends StatefulWidget {
 class _MyStoreTabState extends State<MyStoreTab> {
   bool _isEditing = false;
   bool _isSaving = false;
+  bool _isAvailableInShop = true;
 
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
@@ -49,6 +50,7 @@ class _MyStoreTabState extends State<MyStoreTab> {
   }
 
   void _initControllers() {
+    _isAvailableInShop = widget.merchantData?['isAvailableInShop'] ?? true;
     _nameController = TextEditingController(text: widget.merchantData?['shopName'] ?? '');
     _typeController = TextEditingController(text: widget.merchantData?['shopType'] ?? '');
     _phoneController = TextEditingController(
@@ -192,6 +194,71 @@ class _MyStoreTabState extends State<MyStoreTab> {
                             style: GoogleFonts.poppins(color: Colors.indigo[50], fontSize: 14),
                           ),
                   ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Shop Availability Toggle
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: SwitchListTile(
+                  activeThumbColor: Colors.green,
+                  value: _isAvailableInShop,
+                  title: Text(
+                    context.tr('shopAvailabilityStatus'),
+                    style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    _isAvailableInShop
+                        ? context.tr('availableInShop')
+                        : context.tr('notAvailableInShop'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _isAvailableInShop ? Colors.green[800] : Colors.red,
+                    ),
+                  ),
+                  secondary: CircleAvatar(
+                    backgroundColor: _isAvailableInShop
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : Colors.red.withValues(alpha: 0.1),
+                    child: Icon(
+                      _isAvailableInShop ? Icons.storefront : Icons.store_sharp,
+                      color: _isAvailableInShop ? Colors.green : Colors.red,
+                    ),
+                  ),
+                  onChanged: (val) async {
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user == null) return;
+
+                    setState(() {
+                      _isAvailableInShop = val;
+                    });
+
+                    try {
+                      await FirebaseFirestore.instance
+                          .collection('merchants')
+                          .doc(user.uid)
+                          .set({'isAvailableInShop': val}, SetOptions(merge: true));
+
+                      widget.onUpdate();
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(val
+                                ? context.tr('availableInShop')
+                                : context.tr('notAvailableInShop')),
+                            backgroundColor: val ? Colors.green : Colors.red,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      debugPrint('Error updating availability: $e');
+                    }
+                  },
                 ),
               ),
               const SizedBox(height: 25),

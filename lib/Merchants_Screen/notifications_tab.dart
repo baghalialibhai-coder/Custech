@@ -45,7 +45,7 @@ class _NotificationsTabState extends State<NotificationsTab> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('All notifications marked as read')),
+          SnackBar(content: Text(context.tr('markAllRead'))),
         );
       }
     } catch (e) {
@@ -65,7 +65,7 @@ class _NotificationsTabState extends State<NotificationsTab> {
       if (snapshot.docs.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No notifications older than 30 days found')),
+            SnackBar(content: Text(context.tr('autoClear30DaysNotice'))),
           );
         }
         return;
@@ -79,7 +79,7 @@ class _NotificationsTabState extends State<NotificationsTab> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Cleared ${snapshot.docs.length} old notifications')),
+          SnackBar(content: Text('${context.tr('clearOldNotifications')}: ${snapshot.docs.length}')),
         );
       }
     } catch (e) {
@@ -100,7 +100,6 @@ class _NotificationsTabState extends State<NotificationsTab> {
 
     if (!mounted) return;
 
-    // Navigate to Chat or Details
     if (visitorId.isNotEmpty) {
       Navigator.push(
         context,
@@ -119,17 +118,17 @@ class _NotificationsTabState extends State<NotificationsTab> {
   }
 
   String _formatTimestamp(dynamic timestamp) {
-    if (timestamp == null) return 'Just now';
+    if (timestamp == null) return context.tr('justNow');
     if (timestamp is Timestamp) {
       final date = timestamp.toDate();
       final diff = DateTime.now().difference(date);
-      if (diff.inMinutes < 1) return 'Just now';
-      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-      if (diff.inHours < 24) return '${diff.inHours}h ago';
-      if (diff.inDays < 7) return '${diff.inDays}d ago';
+      if (diff.inMinutes < 1) return context.tr('justNow');
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m ${context.tr('ago')}';
+      if (diff.inHours < 24) return '${diff.inHours}h ${context.tr('ago')}';
+      if (diff.inDays < 7) return '${diff.inDays}d ${context.tr('ago')}';
       return DateFormat('MMM d, h:mm a').format(date);
     }
-    return 'Just now';
+    return context.tr('justNow');
   }
 
   Color _getRoleColor(String role) {
@@ -149,7 +148,7 @@ class _NotificationsTabState extends State<NotificationsTab> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       return Center(
-        child: Text('Please log in to view notifications', style: GoogleFonts.poppins()),
+        child: Text(context.tr('noData'), style: GoogleFonts.poppins()),
       );
     }
 
@@ -185,64 +184,73 @@ class _NotificationsTabState extends State<NotificationsTab> {
               // Header Card
               Container(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
                     colors: [Color(0xFF1A237E), Color(0xFF283593)],
                   ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              'Store Notifications',
-                              style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            if (unreadCount > 0) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
                                 child: Text(
-                                  '$unreadCount New',
+                                  context.tr('storeNotifications'),
                                   style: GoogleFonts.poppins(
                                     color: Colors.white,
-                                    fontSize: 11,
+                                    fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
+                              if (unreadCount > 0) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '$unreadCount ${context.tr('new')}',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ],
-                          ],
-                        ),
-                        Text(
-                          'Showing last 30 days visitors & alerts',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white70,
-                            fontSize: 12,
                           ),
-                        ),
-                      ],
+                          Text(
+                            context.tr('showing30DaysNotifications'),
+                            style: GoogleFonts.poppins(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         if (unreadCount > 0)
                           TextButton.icon(
                             onPressed: () => _markAllAsRead(merchantId),
                             icon: const Icon(Icons.done_all, color: Colors.white, size: 16),
                             label: Text(
-                              'Mark Read',
+                              context.tr('markAllRead'),
                               style: GoogleFonts.poppins(
                                 color: Colors.white,
                                 fontSize: 12,
@@ -252,7 +260,7 @@ class _NotificationsTabState extends State<NotificationsTab> {
                           ),
                         IconButton(
                           icon: const Icon(Icons.delete_sweep, color: Colors.white70, size: 20),
-                          tooltip: 'Clear Old Notifications (>30 Days)',
+                          tooltip: context.tr('clearOldNotifications'),
                           onPressed: () => _clearOldNotifications(merchantId),
                         ),
                       ],
@@ -284,7 +292,7 @@ class _NotificationsTabState extends State<NotificationsTab> {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'Notifications automatically clear after 30 days.',
+                              context.tr('autoClear30DaysNotice'),
                               style: GoogleFonts.poppins(
                                 fontSize: 12,
                                 color: Colors.grey[400],
@@ -302,7 +310,7 @@ class _NotificationsTabState extends State<NotificationsTab> {
                           final bool isRead = data['isRead'] == true;
                           final String visitorRole = data['visitorRole'] ?? 'Customer';
                           final String visitorPhoto = data['visitorPhoto'] ?? '';
-                          final String title = data['title'] ?? 'New Notification';
+                          final String title = data['title'] ?? context.tr('notifications');
                           final String body = data['body'] ?? '';
                           final String timeText = _formatTimestamp(data['createdAt']);
 

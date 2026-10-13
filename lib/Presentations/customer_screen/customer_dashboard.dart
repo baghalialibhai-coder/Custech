@@ -11,6 +11,7 @@ import '../Auth_Screens/login_screen.dart';
 import 'tabs/home_tab.dart';
 import 'tabs/my_tasks_tab.dart';
 import 'tabs/profile_tab.dart';
+import 'stores_tab/screens/customer_stores_screen.dart';
 import 'providers/customer_providers.dart';
 
 class CustomerDashboard extends ConsumerStatefulWidget {
@@ -51,6 +52,7 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
 
   final List<Widget> _pages = [
     const HomeTab(),
+    const CustomerStoresScreen(),
     const MyTasksTab(),
     const ChatListScreen(),
     const ProfileTab(),
@@ -233,7 +235,14 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
         items: [
           BottomNavigationBarItem(
             icon: const Icon(Icons.home_outlined),
+            activeIcon: const Icon(Icons.home),
             label: context.tr('home'),
+          ),
+
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.storefront_outlined),
+            activeIcon: const Icon(Icons.storefront),
+            label: context.tr('stores'),
           ),
 
           BottomNavigationBarItem(
@@ -318,7 +327,7 @@ class _CustomerDashboardState extends ConsumerState<CustomerDashboard> {
   void _handleMenuTap(BuildContext context, String value) {
     switch (value) {
       case 'profile':
-        setState(() => _currentIndex = 3);
+        setState(() => _currentIndex = 4);
         break;
       case 'language':
         Navigator.push(

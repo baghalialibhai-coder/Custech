@@ -21,7 +21,12 @@ import '../../core/models/country_model.dart';
 import '../../countriesPhoneNumberCode/countries_data.dart';
 
 class MerchantInfoScreen extends StatefulWidget {
-  const MerchantInfoScreen({super.key});
+  final Map<String, dynamic>? initialMerchantData;
+
+  const MerchantInfoScreen({
+    super.key,
+    this.initialMerchantData,
+  });
 
   @override
   State<MerchantInfoScreen> createState() => _MerchantInfoScreenState();
@@ -72,16 +77,96 @@ class _MerchantInfoScreenState extends State<MerchantInfoScreen> {
   void initState() {
     super.initState();
     _loadInitialData();
-    // Listen for focus changes to update UI
     _personalPhoneFocus.addListener(() => setState(() {}));
     _shopPhoneFocus.addListener(() => setState(() {}));
   }
 
-  void _loadInitialData() {
+  Future<void> _loadInitialData() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      _userNameController.text = user.displayName ?? '';
+    if (user == null) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      Map<String, dynamic>? data = widget.initialMerchantData;
+
+      // Fetch from Firestore if initialMerchantData wasn't passed
+      if (data == null) {
+        final doc = await FirebaseFirestore.instance.collection('merchants').doc(user.uid).get();
+        if (doc.exists) {
+          data = doc.data();
+        }
+      }
+
+      if (data != null && mounted) {
+        setState(() {
+          _userNameController.text = data!['userName'] ?? user.displayName ?? '';
+
+          final rawUserPhone = (data['userPhoneNumber'] ?? user.phoneNumber ?? '').toString();
+          _userPhoneController.text = _extractPhoneNumber(rawUserPhone);
+
+          _shopNameController.text = data['shopName'] ?? '';
+
+          final rawShopPhone = (data['shopPhoneNumber'] ?? '').toString();
+          _shopPhoneController.text = _extractPhoneNumber(rawShopPhone);
+
+          _shopTypeController.text = data['shopType'] ?? '';
+          _addressController.text = data['address'] ?? '';
+          _pincode = data['pincode'] ?? '';
+          _latitude = (data['latitude'] ?? 0.0).toDouble();
+          _longitude = (data['longitude'] ?? 0.0).toDouble();
+          _shopImageUrl = data['shopImageUrl'] ?? '';
+
+          if (data['openingTime'] != null) {
+            _openingTime = _parseTimeOfDay(data['openingTime'].toString());
+          }
+          if (data['closingTime'] != null) {
+            _closingTime = _parseTimeOfDay(data['closingTime'].toString());
+          }
+          if (data['shopOffDay'] != null) {
+            _shopOffDay = data['shopOffDay'].toString();
+          }
+          if (data['workingDays'] != null) {
+            _selectedWorkingDays.clear();
+            _selectedWorkingDays.addAll(List<String>.from(data['workingDays']));
+          }
+        });
+      } else if (mounted) {
+        _userNameController.text = user.displayName ?? '';
+      }
+    } catch (e) {
+      debugPrint("Error prefilling merchant info: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  String _extractPhoneNumber(String rawPhone) {
+    if (rawPhone.startsWith('+')) {
+      if (rawPhone.length > 3) {
+        return rawPhone.substring(3);
+      }
+    }
+    return rawPhone;
+  }
+
+  TimeOfDay _parseTimeOfDay(String timeStr) {
+    try {
+      final clean = timeStr.trim().toUpperCase();
+      final isPm = clean.contains('PM');
+      final isAm = clean.contains('AM');
+      final parts = clean.replaceAll('AM', '').replaceAll('PM', '').trim().split(':');
+      if (parts.length >= 2) {
+        int hour = int.parse(parts[0].trim());
+        int minute = int.parse(parts[1].trim());
+        if (isPm && hour < 12) hour += 12;
+        if (isAm && hour == 12) hour = 0;
+        return TimeOfDay(hour: hour, minute: minute);
+      }
+    } catch (e) {
+      debugPrint("Error parsing time $timeStr: $e");
+    }
+    return const TimeOfDay(hour: 9, minute: 0);
   }
 
   @override
@@ -115,7 +200,6 @@ class _MerchantInfoScreenState extends State<MerchantInfoScreen> {
     return languageNames[languageCode] ?? 'English';
   }
 
-  // ✅ Phone Field Builder
   Widget _buildPhoneNumberField({
     required String label,
     required String hint,
@@ -277,6 +361,10 @@ class _MerchantInfoScreenState extends State<MerchantInfoScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => LocationPickerScreen(
+          initialAddress: _addressController.text,
+          initialPincode: _pincode,
+          initialLat: _latitude != 0.0 ? _latitude : null,
+          initialLng: _longitude != 0.0 ? _longitude : null,
           onLocationSelected: (lat, lng, address, pincode) {
             setState(() {
               _latitude = lat;
@@ -312,45 +400,64 @@ class _MerchantInfoScreenState extends State<MerchantInfoScreen> {
 
       if (_shopImage != null) {
         setState(() => _isUploading = true);
-        _shopImageUrl = await FirebaseStorageService.uploadImage(_shopImage!, folder: 'shops');
+        final uploaded = await FirebaseStorageService.uploadImage(_shopImage!, folder: 'shops');
+        if (uploaded != null) {
+          _shopImageUrl = uploaded;
+        }
         setState(() => _isUploading = false);
       }
 
       final fullPersonalPhone = '${_selectedCountry.dialCode}${_userPhoneController.text.trim()}';
       final fullShopPhone = '${_selectedShopCountry.dialCode}${_shopPhoneController.text.trim()}';
 
-      final merchant = MerchantModel(
-        merchantId: user.uid,
-        userName: _userNameController.text.trim(),
-        userPhoneNumber: fullPersonalPhone,
-        shopName: _shopNameController.text.trim(),
-        shopPhoneNumber: fullShopPhone,
-        address: _addressController.text.trim(),
-        shopType: _shopTypeController.text.trim(),
-        latitude: _latitude,
-        longitude: _longitude,
-        pincode: _pincode,
-        shopImageUrl: _shopImageUrl ?? '',
-        openingTime: _formatTimeOfDay(_openingTime),
-        closingTime: _formatTimeOfDay(_closingTime),
-        shopOffDay: _shopOffDay,
-        workingDays: _selectedWorkingDays,
-        createdAt: DateTime.now(),
-      );
+      final Map<String, dynamic> updateData = {
+        'merchantId': user.uid,
+        'userName': _userNameController.text.trim(),
+        'userPhoneNumber': fullPersonalPhone,
+        'shopName': _shopNameController.text.trim(),
+        'shopPhoneNumber': fullShopPhone,
+        'address': _addressController.text.trim(),
+        'shopType': _shopTypeController.text.trim(),
+        'latitude': _latitude,
+        'longitude': _longitude,
+        'pincode': _pincode,
+        'shopImageUrl': _shopImageUrl ?? '',
+        'openingTime': _formatTimeOfDay(_openingTime),
+        'closingTime': _formatTimeOfDay(_closingTime),
+        'shopOffDay': _shopOffDay,
+        'workingDays': _selectedWorkingDays,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
 
-      await FirebaseFirestore.instance.collection('merchants').doc(user.uid).set(merchant.toMap());
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+      await FirebaseFirestore.instance
+          .collection('merchants')
+          .doc(user.uid)
+          .set(updateData, SetOptions(merge: true));
+
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'isProfileComplete': true,
         'role': 'merchant',
         'displayName': _userNameController.text.trim(),
         'phoneNumber': fullPersonalPhone,
-      });
+      }, SetOptions(merge: true));
 
       if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const MerchantDashboard()),
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profile details updated successfully!'),
+          backgroundColor: Colors.green,
+        ),
       );
+
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const MerchantDashboard()),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -407,209 +514,216 @@ class _MerchantInfoScreenState extends State<MerchantInfoScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                context.tr('completeShopProfile'),
-                style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo),
-              ),
-              const SizedBox(height: 20),
-
-              Center(
-                child: GestureDetector(
-                  onTap: _showImagePickerOptions,
-                  child: Container(
-                    height: 120,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[300]!),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Colors.indigo))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(20.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('completeShopProfile'),
+                      style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo),
                     ),
-                    child: _shopImage != null
-                        ? ClipRRect(
+                    const SizedBox(height: 20),
+
+                    Center(
+                      child: GestureDetector(
+                        onTap: _showImagePickerOptions,
+                        child: Container(
+                          height: 200,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
                             borderRadius: BorderRadius.circular(12),
-                            child: Image.file(_shopImage!, fit: BoxFit.cover),
-                          )
-                        : Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.add_a_photo, size: 40, color: Colors.indigo),
-                              const SizedBox(height: 8),
-                              Text(
-                                context.tr('uploadShopImage'),
-                                style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
-                              ),
-                            ],
+                            border: Border.all(color: Colors.grey[300]!),
                           ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              _buildSectionTitle(context.tr('personalDetails')),
-              CustomTextField(
-                controller: _userNameController,
-                label: context.tr('merchantName'),
-                hintText: context.tr('merchantName'),
-                prefixIcon: Icons.person,
-                validator: (v) => v!.isEmpty ? context.tr('required') : null,
-              ),
-              const SizedBox(height: 15),
-
-              _buildPhoneNumberField(
-                label: context.tr('personalPhone'),
-                hint: context.tr('enterPhone'),
-                controller: _userPhoneController,
-                focusNode: _personalPhoneFocus,
-                selectedCountry: _selectedCountry,
-                onCountrySelected: (country) => setState(() => _selectedCountry = country),
-              ),
-
-              const SizedBox(height: 25),
-              _buildSectionTitle(context.tr('shopDetails')),
-              CustomTextField(
-                controller: _shopNameController,
-                label: context.tr('shopName'),
-                hintText: context.tr('enterShopName'),
-                prefixIcon: Icons.store,
-                validator: (v) => v!.isEmpty ? context.tr('required') : null,
-              ),
-              const SizedBox(height: 15),
-              CustomTextField(
-                controller: _shopTypeController,
-                label: context.tr('businessType'),
-                hintText: context.tr('businessTypeHint'),
-                prefixIcon: Icons.category,
-                validator: (v) => v!.isEmpty ? context.tr('required') : null,
-              ),
-              const SizedBox(height: 15),
-
-              _buildPhoneNumberField(
-                label: context.tr('shopPhone'),
-                hint: context.tr('enterPhone'),
-                controller: _shopPhoneController,
-                focusNode: _shopPhoneFocus,
-                selectedCountry: _selectedShopCountry,
-                onCountrySelected: (country) => setState(() => _selectedShopCountry = country),
-              ),
-
-              const SizedBox(height: 15),
-              GestureDetector(
-                onTap: _openMap,
-                child: AbsorbPointer(
-                  child: CustomTextField(
-                    controller: _addressController,
-                    label: context.tr('shopAddress'),
-                    hintText: context.tr('tapToSelectLocation'),
-                    prefixIcon: Icons.location_on,
-                    validator: (v) => v!.isEmpty ? context.tr('tapToSelectLocation') : null,
-                  ),
-                ),
-              ),
-              if (_latitude != 0.0)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0, left: 4.0),
-                  child: Text(
-                    "${context.tr('locationSet')}: $_latitude, $_longitude",
-                    style: const TextStyle(color: Colors.green, fontSize: 12),
-                  ),
-                ),
-
-              const SizedBox(height: 25),
-              _buildSectionTitle(context.tr('timingSchedule')),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildTimePickerTile(
-                      context.tr('openingTime'),
-                      _openingTime,
-                      () => _selectTime(context, true),
+                          child: _shopImage != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.file(_shopImage!, fit: BoxFit.cover),
+                                )
+                              : (_shopImageUrl != null && _shopImageUrl!.isNotEmpty)
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Image.network(_shopImageUrl!, fit: BoxFit.cover),
+                                    )
+                                  : Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.add_a_photo, size: 40, color: Colors.indigo),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          context.tr('uploadShopImage'),
+                                          style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
+                                        ),
+                                      ],
+                                    ),
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: _buildTimePickerTile(
-                      context.tr('closingTime'),
-                      _closingTime,
-                      () => _selectTime(context, false),
+                    const SizedBox(height: 20),
+
+                    _buildSectionTitle(context.tr('personalDetails')),
+                    CustomTextField(
+                      controller: _userNameController,
+                      label: context.tr('merchantName'),
+                      hintText: context.tr('merchantName'),
+                      prefixIcon: Icons.person,
+                      validator: (v) => v!.isEmpty ? context.tr('required') : null,
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
+                    const SizedBox(height: 15),
 
-              Text(
-                context.tr('shopOffDay'),
-                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[700]),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _shopOffDay,
-                    isExpanded: true,
-                    items: _days.map((day) => DropdownMenuItem(
-                      value: day,
-                      child: Text(context.tr(day.toLowerCase())),
-                    )).toList(),
-                    onChanged: (val) => setState(() => _shopOffDay = val!),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              Text(
-                context.tr('workingDays'),
-                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[700]),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                children: _days.map((day) {
-                  final isSelected = _selectedWorkingDays.contains(day);
-                  return FilterChip(
-                    label: Text(
-                      context.tr(day.toLowerCase()),
-                      style: TextStyle(fontSize: 12, color: isSelected ? Colors.white : Colors.black),
+                    _buildPhoneNumberField(
+                      label: context.tr('personalPhone'),
+                      hint: context.tr('enterPhone'),
+                      controller: _userPhoneController,
+                      focusNode: _personalPhoneFocus,
+                      selectedCountry: _selectedCountry,
+                      onCountrySelected: (country) => setState(() => _selectedCountry = country),
                     ),
-                    selected: isSelected,
-                    selectedColor: Colors.indigo,
-                    checkmarkColor: Colors.white,
-                    onSelected: (selected) {
-                      setState(() {
-                        if (selected) {
-                          _selectedWorkingDays.add(day);
-                        } else {
-                          _selectedWorkingDays.remove(day);
-                        }
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
 
-              const SizedBox(height: 40),
-              CustomButton(
-                onPressed: (_isLoading || _isUploading) ? null : _saveMerchantData,
-                text: context.tr('saveContinue'),
-                isLoading: _isLoading || _isUploading,
+                    const SizedBox(height: 25),
+                    _buildSectionTitle(context.tr('shopDetails')),
+                    CustomTextField(
+                      controller: _shopNameController,
+                      label: context.tr('shopName'),
+                      hintText: context.tr('enterShopName'),
+                      prefixIcon: Icons.store,
+                      validator: (v) => v!.isEmpty ? context.tr('required') : null,
+                    ),
+                    const SizedBox(height: 15),
+                    CustomTextField(
+                      controller: _shopTypeController,
+                      label: context.tr('businessType'),
+                      hintText: context.tr('businessTypeHint'),
+                      prefixIcon: Icons.category,
+                      validator: (v) => v!.isEmpty ? context.tr('required') : null,
+                    ),
+                    const SizedBox(height: 15),
+
+                    _buildPhoneNumberField(
+                      label: context.tr('shopPhone'),
+                      hint: context.tr('enterPhone'),
+                      controller: _shopPhoneController,
+                      focusNode: _shopPhoneFocus,
+                      selectedCountry: _selectedShopCountry,
+                      onCountrySelected: (country) => setState(() => _selectedShopCountry = country),
+                    ),
+
+                    const SizedBox(height: 15),
+                    GestureDetector(
+                      onTap: _openMap,
+                      child: AbsorbPointer(
+                        child: CustomTextField(
+                          controller: _addressController,
+                          label: context.tr('shopAddress'),
+                          hintText: context.tr('tapToSelectLocation'),
+                          prefixIcon: Icons.location_on,
+                          validator: (v) => v!.isEmpty ? context.tr('tapToSelectLocation') : null,
+                        ),
+                      ),
+                    ),
+                    if (_latitude != 0.0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+                        child: Text(
+                          "${context.tr('locationSet')}: $_latitude, $_longitude",
+                          style: const TextStyle(color: Colors.green, fontSize: 12),
+                        ),
+                      ),
+
+                    const SizedBox(height: 25),
+                    _buildSectionTitle(context.tr('timingSchedule')),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTimePickerTile(
+                            context.tr('openingTime'),
+                            _openingTime,
+                            () => _selectTime(context, true),
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: _buildTimePickerTile(
+                            context.tr('closingTime'),
+                            _closingTime,
+                            () => _selectTime(context, false),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    Text(
+                      context.tr('shopOffDay'),
+                      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[700]),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _shopOffDay,
+                          isExpanded: true,
+                          items: _days.map((day) => DropdownMenuItem(
+                            value: day,
+                            child: Text(context.tr(day.toLowerCase())),
+                          )).toList(),
+                          onChanged: (val) => setState(() => _shopOffDay = val!),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    Text(
+                      context.tr('workingDays'),
+                      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[700]),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      children: _days.map((day) {
+                        final isSelected = _selectedWorkingDays.contains(day);
+                        return FilterChip(
+                          label: Text(
+                            context.tr(day.toLowerCase()),
+                            style: TextStyle(fontSize: 12, color: isSelected ? Colors.white : Colors.black),
+                          ),
+                          selected: isSelected,
+                          selectedColor: Colors.indigo,
+                          checkmarkColor: Colors.white,
+                          onSelected: (selected) {
+                            setState(() {
+                              if (selected) {
+                                _selectedWorkingDays.add(day);
+                              } else {
+                                _selectedWorkingDays.remove(day);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+
+                    const SizedBox(height: 40),
+                    CustomButton(
+                      onPressed: (_isLoading || _isUploading) ? null : _saveMerchantData,
+                      text: context.tr('saveContinue'),
+                      isLoading: _isLoading || _isUploading,
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 

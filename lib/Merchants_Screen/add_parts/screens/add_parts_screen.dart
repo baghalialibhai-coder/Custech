@@ -97,8 +97,8 @@ class _AddPartsScreenState extends ConsumerState<AddPartsScreen> {
     final storeName = _storeNameController.text.trim();
     if (storeName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter Shop / Store Name first'),
+        SnackBar(
+          content: Text(context.tr('enterShopName')),
           backgroundColor: Colors.orange,
         ),
       );
@@ -127,8 +127,8 @@ class _AddPartsScreenState extends ConsumerState<AddPartsScreen> {
     if (mounted) {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Store products description saved successfully!'),
+          SnackBar(
+            content: Text(context.tr('saveStoreCatalog')),
             backgroundColor: Colors.green,
           ),
         );
@@ -137,7 +137,7 @@ class _AddPartsScreenState extends ConsumerState<AddPartsScreen> {
         final state = ref.read(addPartsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error saving: ${state.error ?? 'Unknown error'}'),
+            content: Text('${context.tr('error')}: ${state.error ?? 'Unknown error'}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -176,9 +176,9 @@ class _AddPartsScreenState extends ConsumerState<AddPartsScreen> {
               margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.3)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -227,7 +227,7 @@ class _AddPartsScreenState extends ConsumerState<AddPartsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Store Products & AI Catalog',
+                            context.tr('storeProductsAiCatalog'),
                             style: GoogleFonts.poppins(
                               color: Colors.white,
                               fontSize: 16,
@@ -235,7 +235,7 @@ class _AddPartsScreenState extends ConsumerState<AddPartsScreen> {
                             ),
                           ),
                           Text(
-                            'Generates complete category itemized details based on word limit.',
+                            context.tr('aiCatalogDescHeader'),
                             style: GoogleFonts.poppins(
                               color: Colors.white70,
                               fontSize: 12,
@@ -252,18 +252,18 @@ class _AddPartsScreenState extends ConsumerState<AddPartsScreen> {
               // 1. Shop / Store Name
               _buildInputField(
                 controller: _storeNameController,
-                label: 'Shop / Store Name',
-                hint: 'e.g. Unique Electronics / Karyana Store / Mobile Parts',
+                label: context.tr('shopName'),
+                hint: context.tr('enterShopName'),
                 icon: Icons.store,
-                validator: (v) => v!.isEmpty ? 'Please enter shop name' : null,
+                validator: (v) => v!.isEmpty ? context.tr('enterShopName') : null,
               ),
               const SizedBox(height: 16),
 
               // 2. Business / Product Category
               _buildInputField(
                 controller: _categoryController,
-                label: 'Shop Category / Type (e.g. Mobile Parts, Grocery, Auto Parts)',
-                hint: 'e.g. Mobile Parts, Grocery / Karyana, Auto Spare Parts',
+                label: context.tr('shopCategoryType'),
+                hint: context.tr('businessTypeHint'),
                 icon: Icons.category,
               ),
               const SizedBox(height: 16),
@@ -271,8 +271,8 @@ class _AddPartsScreenState extends ConsumerState<AddPartsScreen> {
               // 3. Products / Items Available
               _buildInputField(
                 controller: _itemsController,
-                label: 'Specific Items / Brands (Optional)',
-                hint: 'e.g. Samsung, iPhone screens, Shampoo, Rice, Oil, Compressors...',
+                label: context.tr('specificItemsBrands'),
+                hint: context.tr('supplierOfParts'),
                 icon: Icons.shopping_bag,
                 maxLines: 2,
               ),
@@ -286,7 +286,7 @@ class _AddPartsScreenState extends ConsumerState<AddPartsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('AI Language', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold)),
+                        Text(context.tr('aiLanguage'), style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -321,7 +321,7 @@ class _AddPartsScreenState extends ConsumerState<AddPartsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Detail Length (Words)', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold)),
+                        Text(context.tr('detailLengthWords'), style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -376,7 +376,7 @@ class _AddPartsScreenState extends ConsumerState<AddPartsScreen> {
                         )
                       : const Icon(Icons.auto_awesome),
                   label: Text(
-                    state.isGenerating ? 'Writing Catalog with AI...' : 'Write Catalog with AI',
+                    state.isGenerating ? context.tr('writingCatalogWithAi') : context.tr('writeCatalogWithAi'),
                     style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
@@ -385,7 +385,7 @@ class _AddPartsScreenState extends ConsumerState<AddPartsScreen> {
 
               // Generated Description (Editable)
               Text(
-                'Store Catalog Description (Editable)',
+                context.tr('storeCatalogDescriptionEditable'),
                 style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.indigo[900]),
               ),
               const SizedBox(height: 8),
@@ -395,7 +395,7 @@ class _AddPartsScreenState extends ConsumerState<AddPartsScreen> {
                 maxLines: 10,
                 style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
                 decoration: InputDecoration(
-                  hintText: 'Press "Write Catalog with AI" to generate full category itemized list, or type manually...',
+                  hintText: context.tr('aiCatalogHintText'),
                   hintStyle: TextStyle(color: Colors.grey[400]),
                   filled: true,
                   fillColor: Colors.white,
@@ -427,7 +427,7 @@ class _AddPartsScreenState extends ConsumerState<AddPartsScreen> {
                         )
                       : const Icon(Icons.check_circle),
                   label: Text(
-                    state.isSaving ? 'Saving...' : 'Save Store Catalog',
+                    state.isSaving ? context.tr('saving') : context.tr('saveStoreCatalog'),
                     style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),

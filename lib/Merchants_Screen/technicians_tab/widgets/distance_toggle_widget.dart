@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../languages/localization/app_localizations.dart';
 
 class DistanceToggleWidget extends StatelessWidget {
   final bool onlyWithin10Km;
@@ -25,14 +26,14 @@ class DistanceToggleWidget extends StatelessWidget {
         children: [
           Expanded(
             child: _buildToggleButton(
-              title: 'Within 10 km 📍',
+              title: '${context.tr('within10Km')} 📍',
               isSelected: onlyWithin10Km,
               onTap: () => onToggle(true),
             ),
           ),
           Expanded(
             child: _buildToggleButton(
-              title: 'All Technicians 🌐',
+              title: '${context.tr('allTechnicians')} 🌐',
               isSelected: !onlyWithin10Km,
               onTap: () => onToggle(false),
             ),

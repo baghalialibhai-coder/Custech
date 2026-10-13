@@ -148,12 +148,12 @@ class _ProfileTabState extends State<ProfileTab> {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
-    final userName = _liveMerchantData?['userName'] ?? user?.displayName ?? 'Merchant Partner';
-    final userPhone = _liveMerchantData?['userPhoneNumber'] ?? user?.phoneNumber ?? 'N/A';
-    final shopName = _liveMerchantData?['shopName'] ?? 'Store Name';
-    final shopType = _liveMerchantData?['shopType'] ?? 'General Store';
+    final userName = _liveMerchantData?['userName'] ?? user?.displayName ?? context.tr('merchantPartner');
+    final userPhone = _liveMerchantData?['userPhoneNumber'] ?? user?.phoneNumber ?? context.tr('notAvailable');
+    final shopName = _liveMerchantData?['shopName'] ?? context.tr('yourShop');
+    final shopType = _liveMerchantData?['shopType'] ?? context.tr('generalStore');
     final shopPhone = _liveMerchantData?['shopPhoneNumber'] ?? userPhone;
-    final address = _liveMerchantData?['address'] ?? 'Address not set';
+    final address = _liveMerchantData?['address'] ?? context.tr('addressNotSet');
     final shopImageUrl = _liveMerchantData?['shopImageUrl'] ?? user?.photoURL ?? '';
     final openTime = _liveMerchantData?['openingTime'] ?? '09:00 AM';
     final closeTime = _liveMerchantData?['closingTime'] ?? '09:00 PM';
@@ -265,7 +265,7 @@ class _ProfileTabState extends State<ProfileTab> {
 
                 // Status Badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
@@ -276,9 +276,13 @@ class _ProfileTabState extends State<ProfileTab> {
                     children: [
                       const Icon(Icons.access_time_filled, color: Colors.greenAccent, size: 14),
                       const SizedBox(width: 6),
-                      Text(
-                        'Open: $openTime - $closeTime (Off: $shopOffDay)',
-                        style: GoogleFonts.poppins(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+                      Flexible(
+                        child: Text(
+                          '${context.tr('open')}: $openTime - $closeTime (${context.tr('off')}: $shopOffDay)',
+                          style: GoogleFonts.poppins(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
@@ -286,7 +290,78 @@ class _ProfileTabState extends State<ProfileTab> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+
+          // ============================================================
+          // 1.5 SHOP AVAILABILITY TOGGLE SWITCH
+          // ============================================================
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: SwitchListTile(
+              activeThumbColor: Colors.green,
+              value: _liveMerchantData?['isAvailableInShop'] ?? true,
+              title: Text(
+                context.tr('shopAvailabilityStatus'),
+                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(
+                (_liveMerchantData?['isAvailableInShop'] ?? true)
+                    ? context.tr('availableInShop')
+                    : context.tr('notAvailableInShop'),
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: (_liveMerchantData?['isAvailableInShop'] ?? true) ? Colors.green[800] : Colors.red,
+                ),
+              ),
+              secondary: CircleAvatar(
+                backgroundColor: (_liveMerchantData?['isAvailableInShop'] ?? true)
+                    ? Colors.green.withValues(alpha: 0.1)
+                    : Colors.red.withValues(alpha: 0.1),
+                child: Icon(
+                  (_liveMerchantData?['isAvailableInShop'] ?? true) ? Icons.storefront : Icons.store_sharp,
+                  color: (_liveMerchantData?['isAvailableInShop'] ?? true) ? Colors.green : Colors.red,
+                ),
+              ),
+              onChanged: (val) async {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user == null) return;
+
+                setState(() {
+                  if (_liveMerchantData == null) {
+                    _liveMerchantData = {'isAvailableInShop': val};
+                  } else {
+                    _liveMerchantData!['isAvailableInShop'] = val;
+                  }
+                });
+
+                try {
+                  await FirebaseFirestore.instance
+                      .collection('merchants')
+                      .doc(user.uid)
+                      .set({'isAvailableInShop': val}, SetOptions(merge: true));
+
+                  widget.onUpdate?.call();
+
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(val
+                            ? context.tr('availableInShop')
+                            : context.tr('notAvailableInShop')),
+                        backgroundColor: val ? Colors.green : Colors.red,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  debugPrint('Error updating availability: $e');
+                }
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
 
           // ============================================================
           // 2. QUICK STATS ROW
@@ -296,8 +371,8 @@ class _ProfileTabState extends State<ProfileTab> {
               Expanded(
                 child: _buildStatCard(
                   icon: Icons.storefront,
-                  label: 'Store Status',
-                  value: 'Active 🟢',
+                  label: context.tr('storeStatus'),
+                  value: context.tr('activeStatus'),
                   color: Colors.green,
                 ),
               ),
@@ -305,7 +380,7 @@ class _ProfileTabState extends State<ProfileTab> {
               Expanded(
                 child: _buildStatCard(
                   icon: Icons.star_rate_rounded,
-                  label: 'Store Rating',
+                  label: context.tr('storeRating'),
                   value: '4.9 ★',
                   color: Colors.amber[800]!,
                 ),
@@ -314,7 +389,7 @@ class _ProfileTabState extends State<ProfileTab> {
               Expanded(
                 child: _buildStatCard(
                   icon: Icons.verified_user,
-                  label: 'Role',
+                  label: context.tr('role'),
                   value: 'Merchant',
                   color: Colors.indigo,
                 ),
@@ -326,7 +401,7 @@ class _ProfileTabState extends State<ProfileTab> {
           // ============================================================
           // 3. STORE DETAILS & CONTACT CARD
           // ============================================================
-          _buildSectionHeader('Shop Information'),
+          _buildSectionHeader(context.tr('shopInformation')),
           const SizedBox(height: 10),
           Card(
             elevation: 2,
@@ -335,19 +410,19 @@ class _ProfileTabState extends State<ProfileTab> {
               children: [
                 _buildInfoListTile(
                   icon: Icons.phone_android,
-                  title: 'Personal Phone',
+                  title: context.tr('personalPhone'),
                   subtitle: userPhone,
                 ),
                 const Divider(height: 1, indent: 56),
                 _buildInfoListTile(
                   icon: Icons.store,
-                  title: 'Shop Phone',
+                  title: context.tr('shopPhone'),
                   subtitle: shopPhone,
                 ),
                 const Divider(height: 1, indent: 56),
                 _buildInfoListTile(
                   icon: Icons.location_on,
-                  title: 'Shop Address',
+                  title: context.tr('shopAddress'),
                   subtitle: address,
                 ),
               ],
@@ -358,7 +433,7 @@ class _ProfileTabState extends State<ProfileTab> {
           // ============================================================
           // 4. QUICK STORE ACTIONS
           // ============================================================
-          _buildSectionHeader('Store Quick Actions'),
+          _buildSectionHeader(context.tr('storeQuickActions')),
           const SizedBox(height: 10),
           Card(
             elevation: 2,
@@ -368,12 +443,14 @@ class _ProfileTabState extends State<ProfileTab> {
                 _buildActionTile(
                   icon: Icons.edit_note,
                   color: Colors.indigo,
-                  title: 'Edit Merchant Profile Details',
-                  subtitle: 'Update shop name, timing, location & photos',
+                  title: context.tr('editMerchantDetails'),
+                  subtitle: context.tr('updateShopDetailsDesc'),
                   onTap: () async {
                     await Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const MerchantInfoScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => MerchantInfoScreen(initialMerchantData: _liveMerchantData),
+                      ),
                     );
                     _fetchLatestData();
                     widget.onUpdate?.call();
@@ -383,8 +460,8 @@ class _ProfileTabState extends State<ProfileTab> {
                 _buildActionTile(
                   icon: Icons.auto_awesome,
                   color: Colors.green[700]!,
-                  title: 'Add Parts & AI Catalog Generator',
-                  subtitle: 'Generate full product list with AI and save to store',
+                  title: context.tr('addPartsAiCatalog'),
+                  subtitle: context.tr('addPartsAiCatalogDesc'),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -402,7 +479,7 @@ class _ProfileTabState extends State<ProfileTab> {
           // ============================================================
           // 5. APP SETTINGS & ACCOUNT
           // ============================================================
-          _buildSectionHeader('App & Preferences'),
+          _buildSectionHeader(context.tr('appPreferences')),
           const SizedBox(height: 10),
           Card(
             elevation: 2,
@@ -412,8 +489,8 @@ class _ProfileTabState extends State<ProfileTab> {
                 _buildActionTile(
                   icon: Icons.language,
                   color: Colors.blue,
-                  title: 'App Language',
-                  subtitle: 'Change app display language',
+                  title: context.tr('appLanguage'),
+                  subtitle: context.tr('changeLanguageDesc'),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -426,7 +503,7 @@ class _ProfileTabState extends State<ProfileTab> {
                   icon: Icons.help_outline,
                   color: Colors.teal,
                   title: context.tr('helpSupport'),
-                  subtitle: 'Get assistance and FAQ',
+                  subtitle: context.tr('helpSupportDesc'),
                   onTap: () {},
                 ),
                 const Divider(height: 1, indent: 56),
@@ -434,7 +511,7 @@ class _ProfileTabState extends State<ProfileTab> {
                   icon: Icons.privacy_tip_outlined,
                   color: Colors.deepPurple,
                   title: context.tr('privacy'),
-                  subtitle: 'Privacy policy and terms of service',
+                  subtitle: context.tr('privacyPolicyDesc'),
                   onTap: () {},
                 ),
               ],
@@ -513,12 +590,16 @@ class _ProfileTabState extends State<ProfileTab> {
           const SizedBox(height: 8),
           Text(
             value,
-            style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87),
+            style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
           ),
           Text(
             label,
             style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey[600]),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
           ),
         ],

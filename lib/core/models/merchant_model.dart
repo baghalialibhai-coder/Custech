@@ -20,6 +20,7 @@ class MerchantModel {
   final String closingTime;
   final String shopOffDay;
   final List<String> workingDays;
+  final bool isAvailableInShop; // ✅ Toggle for shop presence/availability
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -41,6 +42,7 @@ class MerchantModel {
     this.closingTime = '09:00 PM',
     this.shopOffDay = 'Sunday',
     required this.workingDays,
+    this.isAvailableInShop = true,
     this.createdAt,
     this.updatedAt,
   });
@@ -64,6 +66,7 @@ class MerchantModel {
       'closingTime': closingTime,
       'shopOffDay': shopOffDay,
       'workingDays': workingDays,
+      'isAvailableInShop': isAvailableInShop,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
@@ -88,6 +91,7 @@ class MerchantModel {
       closingTime: map['closingTime'] ?? '09:00 PM',
       shopOffDay: map['shopOffDay'] ?? 'Sunday',
       workingDays: List<String>.from(map['workingDays'] ?? []),
+      isAvailableInShop: map['isAvailableInShop'] ?? true,
       createdAt: map['createdAt'] != null ? (map['createdAt'] as Timestamp).toDate() : null,
       updatedAt: map['updatedAt'] != null ? (map['updatedAt'] as Timestamp).toDate() : null,
     );

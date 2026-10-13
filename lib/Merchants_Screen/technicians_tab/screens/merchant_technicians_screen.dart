@@ -10,6 +10,7 @@ import '../widgets/category_filter_chips.dart';
 import '../widgets/technician_card_widget.dart';
 import '../models/merchant_technician_item.dart';
 import '../../../../Presentations/chat/Screens/chat_screen.dart';
+import '../../../../languages/localization/app_localizations.dart';
 
 class MerchantTechniciansScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic>? merchantData;
@@ -100,7 +101,7 @@ class _MerchantTechniciansScreenState extends ConsumerState<MerchantTechniciansS
                           style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                         Text(
-                          item.address.isNotEmpty ? item.address : 'Service Technician',
+                          item.address.isNotEmpty ? item.address : context.tr('technician'),
                           style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
                         ),
                         const SizedBox(height: 4),
@@ -108,7 +109,7 @@ class _MerchantTechniciansScreenState extends ConsumerState<MerchantTechniciansS
                           children: [
                             const Icon(Icons.star, color: Colors.amber, size: 18),
                             const SizedBox(width: 4),
-                            Text('${tech.rating.toStringAsFixed(1)} (${tech.totalReviews} reviews)',
+                            Text('${tech.rating.toStringAsFixed(1)} (${tech.totalReviews} ${context.tr('reviews')})',
                                 style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13)),
                           ],
                         ),
@@ -126,16 +127,16 @@ class _MerchantTechniciansScreenState extends ConsumerState<MerchantTechniciansS
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildModalDetailTile('Experience', '${tech.experience} Yrs'),
-                  _buildModalDetailTile('Visit Fee', 'PKR ${tech.visitingCharges.toStringAsFixed(0)}'),
-                  _buildModalDetailTile('Hourly Rate', 'PKR ${tech.hourlyRate.toStringAsFixed(0)}'),
-                  _buildModalDetailTile('Distance', item.distanceInKm > 0 ? '${item.distanceInKm.toStringAsFixed(1)} km' : 'Nearby'),
+                  _buildModalDetailTile(context.tr('experience'), '${tech.experience} ${context.tr('yrsExp')}'),
+                  _buildModalDetailTile(context.tr('visitingCharges'), 'PKR ${tech.visitingCharges.toStringAsFixed(0)}'),
+                  _buildModalDetailTile(context.tr('hourlyRate'), 'PKR ${tech.hourlyRate.toStringAsFixed(0)}'),
+                  _buildModalDetailTile(context.tr('location'), item.distanceInKm > 0 ? '${item.distanceInKm.toStringAsFixed(1)} km' : context.tr('currentLocation')),
                 ],
               ),
               const SizedBox(height: 20),
 
               // Categories
-              Text('Categories & Services', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.indigo[900])),
+              Text(context.tr('selectCategories'), style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.indigo[900])),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -149,7 +150,7 @@ class _MerchantTechniciansScreenState extends ConsumerState<MerchantTechniciansS
 
               // About
               if (tech.about.isNotEmpty) ...[
-                Text('About Technician', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.indigo[900])),
+                Text(context.tr('about'), style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.indigo[900])),
                 const SizedBox(height: 6),
                 Text(tech.about, style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[800], height: 1.4)),
                 const SizedBox(height: 20),
@@ -157,7 +158,7 @@ class _MerchantTechniciansScreenState extends ConsumerState<MerchantTechniciansS
 
               // Service Pincodes
               if (tech.servicePinCodes.isNotEmpty) ...[
-                Text('Service Area Pincodes', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.indigo[900])),
+                Text(context.tr('serviceAreaPincodes'), style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.indigo[900])),
                 const SizedBox(height: 6),
                 Text(tech.servicePinCodes.join(', '), style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[700])),
                 const SizedBox(height: 24),
@@ -175,7 +176,7 @@ class _MerchantTechniciansScreenState extends ConsumerState<MerchantTechniciansS
                         }
                       },
                       icon: const Icon(Icons.call),
-                      label: const Text('Call Technician'),
+                      label: Text(context.tr('callTechnician')),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.green[700],
                         side: BorderSide(color: Colors.green[700]!),
@@ -203,7 +204,7 @@ class _MerchantTechniciansScreenState extends ConsumerState<MerchantTechniciansS
                         );
                       },
                       icon: const Icon(Icons.chat),
-                      label: const Text('Send Message'),
+                      label: Text(context.tr('sendMessage')),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.indigo,
                         foregroundColor: Colors.white,
@@ -271,7 +272,7 @@ class _MerchantTechniciansScreenState extends ConsumerState<MerchantTechniciansS
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Technicians Directory',
+                          context.tr('techniciansDirectory'),
                           style: GoogleFonts.poppins(
                             color: Colors.white,
                             fontSize: 16,
@@ -280,8 +281,8 @@ class _MerchantTechniciansScreenState extends ConsumerState<MerchantTechniciansS
                         ),
                         Text(
                           state.onlyWithin10Km
-                              ? 'Showing technicians within 10 km radius'
-                              : 'Showing all registered technicians',
+                              ? context.tr('showing10KmTechs')
+                              : context.tr('showingAllTechs'),
                           style: GoogleFonts.poppins(
                             color: Colors.white70,
                             fontSize: 12,
@@ -307,7 +308,7 @@ class _MerchantTechniciansScreenState extends ConsumerState<MerchantTechniciansS
               controller: _searchController,
               style: GoogleFonts.poppins(fontSize: 14),
               decoration: InputDecoration(
-                hintText: 'Search by technician name, category, or city...',
+                hintText: context.tr('searchTechnicianHint'),
                 hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
                 prefixIcon: const Icon(Icons.search, color: Colors.indigo),
                 suffixIcon: _searchController.text.isNotEmpty
@@ -347,7 +348,7 @@ class _MerchantTechniciansScreenState extends ConsumerState<MerchantTechniciansS
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Available Technicians (${list.length})',
+                  '${context.tr('availableTechnicians')} (${list.length})',
                   style: GoogleFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -366,14 +367,14 @@ class _MerchantTechniciansScreenState extends ConsumerState<MerchantTechniciansS
 
             // Technicians List or Loading / Empty States
             if (state.isLoading && list.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 40.0),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 40.0),
                 child: Center(
                   child: Column(
                     children: [
-                      CircularProgressIndicator(color: Colors.indigo),
-                      SizedBox(height: 12),
-                      Text('Searching technicians near your store...'),
+                      const CircularProgressIndicator(color: Colors.indigo),
+                      const SizedBox(height: 12),
+                      Text(context.tr('searchingTechsNearStore')),
                     ],
                   ),
                 ),
@@ -391,7 +392,7 @@ class _MerchantTechniciansScreenState extends ConsumerState<MerchantTechniciansS
                     Icon(Icons.build_circle_outlined, size: 56, color: Colors.indigo[200]),
                     const SizedBox(height: 12),
                     Text(
-                      'No Technicians Found',
+                      context.tr('noTechniciansFound'),
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -401,8 +402,8 @@ class _MerchantTechniciansScreenState extends ConsumerState<MerchantTechniciansS
                     const SizedBox(height: 6),
                     Text(
                       state.onlyWithin10Km
-                          ? 'No technicians within 10 km radius. Try switching to "All Technicians".'
-                          : 'Try changing your category or search term.',
+                          ? context.tr('noTechs10KmNotice')
+                          : context.tr('tryChangingSearchCategory'),
                       style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
                       textAlign: TextAlign.center,
                     ),
@@ -415,7 +416,7 @@ class _MerchantTechniciansScreenState extends ConsumerState<MerchantTechniciansS
                           foregroundColor: Colors.white,
                         ),
                         icon: const Icon(Icons.public, size: 18),
-                        label: const Text('Show All Technicians'),
+                        label: Text(context.tr('showAllTechnicians')),
                       ),
                   ],
                 ),

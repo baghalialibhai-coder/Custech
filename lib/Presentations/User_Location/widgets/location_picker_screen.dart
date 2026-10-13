@@ -33,6 +33,7 @@ class LocationPickerScreen extends StatefulWidget {
 
 class _LocationPickerScreenState extends State<LocationPickerScreen> {
   final _searchController = TextEditingController();
+  final _mapSearchController = TextEditingController();
   final _addressController = TextEditingController();
   final _pincodeController = TextEditingController();
   final _cityController = TextEditingController();
@@ -44,6 +45,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   double _selectedLat = 0.0;
   double _selectedLng = 0.0;
   List<Map<String, dynamic>> _searchResults = [];
+  List<Map<String, dynamic>> _mapSearchResults = [];
 
   GoogleMapController? _mapController;
   final Set<Marker> _markers = {};
@@ -66,6 +68,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _mapSearchController.dispose();
     _addressController.dispose();
     _pincodeController.dispose();
     _cityController.dispose();
@@ -102,7 +105,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   String _getLoc(String key) {
     final lang = Localizations.localeOf(context).languageCode;
     final Map<String, Map<String, String>> values = {
-      'streetHint': { 'en': 'House #, Street, Area', 'ur': 'مکان نمبر، گلی، علاقہ', 'ar': 'رقم المنزل، الشارع، المنطقة', 'hi': 'मकान नंबर, गली, क्षेत्र', 'es': 'Casa #, Calle, Área', 'fr': 'Maison #, Rue, Quartier', 'zh': '门牌号，街道，地区', 'tr': 'Ev No, Sokak, Bölge', 'id': 'No Rumah, Jalan, Area', 'ms': 'No Rumah, Jalan, Kawasan' },
+      'streetHint': { 'en': 'House #, Street, Shop #, Main Road', 'ur': 'مکان نمبر، دکان نمبر، گلی، مین روڈ', 'ar': 'رقم المنزل، الشارع، المنطقة', 'hi': 'मकान नंबर, दुकान नंबर, गली, मेन रोड', 'es': 'Casa #, Calle, Tienda #', 'fr': 'Maison #, Rue, Boutique #', 'zh': '门牌号，街道，铺号', 'tr': 'Ev No, Sokak, Dükkan No', 'id': 'No Rumah, Jalan, Toko', 'ms': 'No Rumah, Jalan, Kedai' },
       'areaHint': { 'en': 'e.g., G-11, Model Town', 'ur': 'مثلاً جی الیون، ماڈل ٹاؤن', 'ar': 'مثلاً جي ١١، موديل تاون', 'hi': 'जैसे, जी-11, मॉडल टाउन', 'es': 'ej., G-11, Model Town', 'fr': 'ex., G-11, Model Town', 'zh': '例如：G-11, 模范镇', 'tr': 'örn., G-11, Model Town', 'id': 'misal, G-11, Model Town', 'ms': 'cth., G-11, Model Town' },
       'cityHint': { 'en': 'e.g., Islamabad, Lahore', 'ur': 'مثلاً اسلام آباد، لاہور', 'ar': 'مثلاً إسلام آباد، لاهور', 'hi': 'जैसे, इस्लामाबाद, लाहौर', 'es': 'ej., Islamabad, Lahore', 'fr': 'ex., Islamabad, Paris', 'zh': '例如：北京，上海', 'tr': 'örn., Ankara, İstanbul', 'id': 'misal, Jakarta, Bandung', 'ms': 'cth., Kuala Lumpur, Ipoh' },
       'confirmLocation': { 'en': 'Confirm Location', 'ur': 'مقام کی تصدیق کریں', 'ar': 'تأكيد الموقع', 'hi': 'स्थान की पुष्टि करें', 'es': 'Confirmar ubicación', 'fr': 'Confirmer l\'emplacement', 'zh': '确认位置', 'tr': 'Konumu Onayla', 'id': 'Konfirmasi Lokasi', 'ms': 'Sahkan Lokasi' },
@@ -130,9 +133,9 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
               margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
               padding: const EdgeInsets.symmetric(horizontal: 10),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.3)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -245,7 +248,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
           const SizedBox(height: 20),
           Text(
             context.tr('enterAddressManually'),
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 12),
           _buildTextField(_addressController, context.tr('streetAddress'), _getLoc('streetHint')),
@@ -267,7 +270,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
               ),
               child: Text(
                 _getLoc('saveLocation'),
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -280,22 +283,33 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+        Text(label, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey[700])),
         const SizedBox(height: 4),
         TextField(
           controller: controller,
           keyboardType: type,
+          style: GoogleFonts.poppins(fontSize: 14),
           decoration: InputDecoration(
             hintText: hint,
+            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.green[700]!, width: 2),
+            ),
           ),
-          onChanged: (v) => setState(() => _selectedAddress = _addressController.text),
+          onChanged: (v) {
+            setState(() {
+              _selectedAddress = _addressController.text;
+            });
+          },
         ),
       ],
     );
   }
 
   Widget _buildMapSelection() {
+    final bool isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
     final LatLng initialTarget = LatLng(
       _selectedLat != 0.0 ? _selectedLat : 31.5204,
       _selectedLng != 0.0 ? _selectedLng : 74.3587,
@@ -314,29 +328,168 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
           },
           initialCameraPosition: CameraPosition(target: initialTarget, zoom: 15),
           markers: _markers,
-          onTap: _onMapTap,
+          onTap: (pos) {
+            FocusScope.of(context).unfocus();
+            _onMapTap(pos);
+          },
           myLocationEnabled: true,
           myLocationButtonEnabled: false,
         ),
 
-        // FAB to re-center to current GPS location
+        // Floating Sleek Search Bar Overlay on Top of Map
         Positioned(
-          bottom: _selectedAddress.isNotEmpty ? 130 : 20,
+          top: 12,
+          left: 16,
           right: 16,
-          child: FloatingActionButton(
-            heroTag: 'my_location_fab',
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.green[700],
-            onPressed: _getCurrentLocation,
-            child: _isLoading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.green),
-                  )
-                : const Icon(Icons.my_location, size: 28),
+          child: Column(
+            children: [
+              Container(
+                height: 50,
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 12),
+                    Icon(Icons.search, color: Colors.green[700], size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: _mapSearchController,
+                        style: GoogleFonts.poppins(fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: context.tr('searchLocation'),
+                          hintStyle: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 13),
+                          border: InputBorder.none,
+                          isDense: true,
+                        ),
+                        onChanged: _searchMapLocation,
+                        onSubmitted: (q) {
+                          FocusScope.of(context).unfocus();
+                          _searchMapLocation(q);
+                        },
+                      ),
+                    ),
+                    if (_mapSearchController.text.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.grey, size: 18),
+                        onPressed: () {
+                          _mapSearchController.clear();
+                          setState(() => _mapSearchResults = []);
+                        },
+                      ),
+                    GestureDetector(
+                      onTap: () {
+                        FocusScope.of(context).unfocus();
+                        if (_mapSearchController.text.isNotEmpty) {
+                          _searchMapLocation(_mapSearchController.text);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.green[700],
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.search, color: Colors.white, size: 16),
+                            const SizedBox(width: 4),
+                            Text(
+                              context.tr('search'),
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                ),
+              ),
+
+              // Search Results Dropdown Overlay on Map (Flexible Height)
+              if (_mapSearchResults.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    itemCount: _mapSearchResults.length,
+                    separatorBuilder: (context, index) => const Divider(height: 1, indent: 16, endIndent: 16),
+                    itemBuilder: (context, i) {
+                      final item = _mapSearchResults[i];
+                      return ListTile(
+                        dense: true,
+                        leading: CircleAvatar(
+                          radius: 14,
+                          backgroundColor: Colors.green[50],
+                          child: Icon(Icons.location_on, color: Colors.green[700], size: 16),
+                        ),
+                        title: Text(
+                          item['name'],
+                          style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onTap: () {
+                          FocusScope.of(context).unfocus();
+                          _fillAddressFromMapSearch(item);
+                        },
+                      );
+                    },
+                  ),
+                ),
+            ],
           ),
         ),
+
+        // FAB to re-center to current GPS location (Hidden when Keyboard is Open)
+        if (!isKeyboardOpen)
+          Positioned(
+            bottom: _selectedAddress.isNotEmpty ? 150 : 20,
+            right: 16,
+            child: FloatingActionButton(
+              heroTag: 'map_my_location_fab',
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.green[700],
+              onPressed: _getCurrentLocation,
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.green),
+                    )
+                  : const Icon(Icons.my_location, size: 28),
+            ),
+          ),
 
         if (_isLoading)
           Container(
@@ -359,49 +512,97 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             ),
           ),
 
-        if (_selectedAddress.isNotEmpty)
+        // Bottom Confirm Location Card (Hidden when Keyboard is Open)
+        if ((_selectedAddress.isNotEmpty || _addressController.text.isNotEmpty) && !isKeyboardOpen)
           Positioned(
             bottom: 20,
             left: 16,
             right: 16,
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: const [BoxShadow(blurRadius: 10, color: Colors.black12)],
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.location_on, color: Colors.green),
-                      const SizedBox(width: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6.0),
+                        child: CircleAvatar(
+                          radius: 18,
+                          backgroundColor: Colors.green[50],
+                          child: Icon(Icons.location_on, color: Colors.green[700], size: 20),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
                       Expanded(
-                        child: Text(
-                          _selectedAddress,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              context.tr('selectedLocation'),
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            TextField(
+                              controller: _addressController,
+                              maxLines: 2,
+                              minLines: 1,
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                color: Colors.black87,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: context.tr('streetAddress'),
+                                hintStyle: TextStyle(color: Colors.grey[400], fontSize: 12),
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                                border: InputBorder.none,
+                              ),
+                              onChanged: (val) {
+                                setState(() {
+                                  _selectedAddress = val;
+                                });
+                              },
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: _saveLocation,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green[700],
-                      minimumSize: const Size(double.infinity, 45),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: Text(
-                      _getLoc('confirmLocation'),
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 42,
+                    child: ElevatedButton.icon(
+                      onPressed: _saveLocation,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green[700],
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.check_circle_outline, size: 18),
+                      label: Text(
+                        _getLoc('confirmLocation'),
+                        style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
                     ),
                   ),
                 ],
@@ -449,7 +650,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             _selectedLng = lng;
             _selectedAddress = fullAddr.isNotEmpty ? fullAddr : '$lat, $lng';
             _selectedPincode = pincode;
-            _addressController.text = _selectedAddress;
+            _addressController.text = street.isNotEmpty ? street : _selectedAddress;
             _pincodeController.text = _selectedPincode;
             _cityController.text = loc;
             _areaController.text = subLoc;
@@ -543,9 +744,12 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final loc = data['result']['geometry']['location'];
-        _onMapTap(LatLng(loc['lat'], loc['lng']));
+        final double lat = (loc['lat'] as num).toDouble();
+        final double lng = (loc['lng'] as num).toDouble();
+
+        _onMapTap(LatLng(lat, lng));
         _mapController?.animateCamera(
-          CameraUpdate.newLatLngZoom(LatLng(loc['lat'], loc['lng']), 16),
+          CameraUpdate.newLatLngZoom(LatLng(lat, lng), 16),
         );
         if (mounted) {
           setState(() => _searchResults = []);
@@ -556,8 +760,94 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     }
   }
 
+  Future<void> _searchMapLocation(String q) async {
+    if (q.length < 3) {
+      setState(() => _mapSearchResults = []);
+      return;
+    }
+    final url = "https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$q&key=$_apiKey";
+    try {
+      final res = await http.get(Uri.parse(url));
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        if (mounted) {
+          setState(() {
+            _mapSearchResults = (data['predictions'] as List)
+                .map((e) => {'name': e['description'], 'id': e['place_id']})
+                .toList();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Map search location error: $e');
+    }
+  }
+
+  void _fillAddressFromMapSearch(Map<String, dynamic> res) async {
+    final url = "https://maps.googleapis.com/maps/api/place/details/json?place_id=${res['id']}&key=$_apiKey";
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final loc = data['result']['geometry']['location'];
+        final double lat = (loc['lat'] as num).toDouble();
+        final double lng = (loc['lng'] as num).toDouble();
+
+        _addMarker(lat, lng);
+
+        _mapController?.animateCamera(
+          CameraUpdate.newLatLngZoom(LatLng(lat, lng), 16),
+        );
+
+        await _updateAddressFromCoordinates(lat, lng);
+
+        if (mounted) {
+          setState(() {
+            _mapSearchResults = [];
+            _mapSearchController.text = res['name'];
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Fill address from map search error: $e');
+    }
+  }
+
   void _saveLocation() {
-    if (_selectedAddress.isEmpty) return;
+    final userTyped = _addressController.text.trim();
+
+    if (_selectedTab == 0) {
+      // Manual Entry Mode
+      final street = _addressController.text.trim();
+      final area = _areaController.text.trim();
+      final city = _cityController.text.trim();
+      final pincode = _pincodeController.text.trim();
+
+      final List<String> addressParts = [];
+      if (street.isNotEmpty) addressParts.add(street);
+      if (area.isNotEmpty) addressParts.add(area);
+      if (city.isNotEmpty) addressParts.add(city);
+
+      if (addressParts.isNotEmpty) {
+        _selectedAddress = addressParts.join(', ');
+      }
+      if (pincode.isNotEmpty) {
+        _selectedPincode = pincode;
+      }
+    } else {
+      // Select on Map Mode
+      if (userTyped.isNotEmpty) {
+        _selectedAddress = userTyped;
+      }
+    }
+
+    if (_selectedAddress.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('pleaseSelectLocation'))),
+      );
+      return;
+    }
+
     widget.onLocationSelected(_selectedLat, _selectedLng, _selectedAddress, _selectedPincode);
     Navigator.pop(context);
   }

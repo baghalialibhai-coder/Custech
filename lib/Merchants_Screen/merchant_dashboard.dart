@@ -5,12 +5,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../Presentations/Auth_Screens/login_screen.dart';
+import '../Presentations/chat/Screens/chat_list_screen.dart';
 import '../languages/localization/app_localizations.dart';
 import '../languages/widget/language_selection_screen.dart';
 import 'merchant_bottom_navigation.dart';
 import 'home_tab.dart';
 import 'my_store_tab.dart';
-import 'notifications_tab.dart';
+import 'notifications_screen.dart';
 import 'profile_tab.dart';
 import 'technicians_tab/screens/merchant_technicians_screen.dart';
 
@@ -24,7 +25,7 @@ class MerchantDashboard extends StatefulWidget {
 class _MerchantDashboardState extends State<MerchantDashboard> {
   Map<String, dynamic>? merchantData;
   bool _isLoading = true;
-  int _currentIndex = 0; // 0: Home, 1: My Store, 2: Technicians, 3: Notifications, 4: Profile
+  int _currentIndex = 0; // 0: Home, 1: My Store, 2: Technicians, 3: Chat/Messages, 4: Profile
 
   @override
   void initState() {
@@ -104,13 +105,15 @@ class _MerchantDashboardState extends State<MerchantDashboard> {
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         actions: [
-          // ✅ Alert (Notification) Button
+          // ✅ Alert (Notification) Button in AppBar opens Notifications Screen
           IconButton(
             icon: const Icon(Icons.notifications_none),
+            tooltip: context.tr('storeNotifications'),
             onPressed: () {
-              setState(() {
-                _currentIndex = 3; // Navigate to Notifications tab
-              });
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+              );
             },
           ),
           // ✅ Language Selection Pill Button
@@ -120,9 +123,9 @@ class _MerchantDashboardState extends State<MerchantDashboard> {
               margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.3)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -180,8 +183,8 @@ class _MerchantDashboardState extends State<MerchantDashboard> {
     switch (_currentIndex) {
       case 0: return context.tr('allStores');
       case 1: return context.tr('myStore');
-      case 2: return 'Technicians';
-      case 3: return context.tr('notifications');
+      case 2: return context.tr('technicians');
+      case 3: return context.tr('messages');
       case 4: return context.tr('profile');
       default: return context.tr('merchantDashboard');
     }
@@ -197,7 +200,7 @@ class _MerchantDashboardState extends State<MerchantDashboard> {
       case 2: return MerchantTechniciansScreen(
         merchantData: merchantData,
       );
-      case 3: return const NotificationsTab();
+      case 3: return const ChatListScreen();
       case 4: return ProfileTab(
         merchantData: merchantData,
         onLogout: _showLogoutDialog,

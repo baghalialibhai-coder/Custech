@@ -1165,10 +1165,12 @@ exports.testNotification = onRequest(
 );
 
 // ============================================================
-// 8. MERCHANT SHOP VISIT & NOTIFICATION FUNCTIONS
+// 8. ALL APP NOTIFICATION FUNCTIONS (Node.js FCM Triggers)
 // ============================================================
-const merchantNotification = require("./merchantNotification");
-exports.onShopVisitCreated = merchantNotification.onShopVisitCreated;
-exports.cleanupOldNotifications = merchantNotification.cleanupOldNotifications;
-exports.markNotificationSeen = merchantNotification.markNotificationSeen;
+const notification = require("./notification");
+exports.onMessageCreated = notification.onMessageCreated;
+exports.onTaskUpdated = notification.onTaskUpdated;
+exports.onShopVisitCreated = notification.onShopVisitCreated;
+exports.cleanupOldNotifications = notification.cleanupOldNotifications;
+exports.markNotificationSeen = notification.markNotificationSeen;
 

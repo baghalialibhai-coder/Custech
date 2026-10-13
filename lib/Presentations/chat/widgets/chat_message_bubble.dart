@@ -360,23 +360,20 @@ class ChatMessageBubble extends StatelessWidget {
         return Icons.done_all;
       case MessageStatus.failed:
         return Icons.error_outline;
-      default:
-        return Icons.check;
     }
   }
 
   Color _getStatusColor(MessageStatus status) {
     switch (status) {
       case MessageStatus.sent:
-        return Colors.grey;
+        return isMe ? Colors.white60 : Colors.grey;
       case MessageStatus.delivered:
-        return Colors.blue;
+        return isMe ? Colors.white70 : Colors.grey[600]!;
       case MessageStatus.read:
-        return Colors.green[700]!;
+        return Colors.lightBlueAccent;
       case MessageStatus.failed:
         return Colors.red;
-      default:
-        return Colors.grey;
     }
   }
+
 }

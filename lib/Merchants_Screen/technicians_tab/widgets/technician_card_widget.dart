@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/merchant_technician_item.dart';
 import '../../../../Presentations/chat/Screens/chat_screen.dart';
+import '../../../../languages/localization/app_localizations.dart';
 
 class TechnicianCardWidget extends StatelessWidget {
   final MerchantTechnicianItem item;
@@ -19,7 +20,7 @@ class TechnicianCardWidget extends StatelessWidget {
   Future<void> _makeCall(BuildContext context) async {
     if (item.phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Phone number not available')),
+        SnackBar(content: Text(context.tr('phoneError'))),
       );
       return;
     }
@@ -29,7 +30,7 @@ class TechnicianCardWidget extends StatelessWidget {
     } else {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not launch dialer')),
+          SnackBar(content: Text(context.tr('error'))),
         );
       }
     }
@@ -133,11 +134,15 @@ class TechnicianCardWidget extends StatelessWidget {
                               fontSize: 12,
                             ),
                           ),
-                          Text(
-                            '(${tech.completedJobs} jobs completed)',
-                            style: GoogleFonts.poppins(
-                              color: Colors.grey[600],
-                              fontSize: 11,
+                          Flexible(
+                            child: Text(
+                              '(${tech.completedJobs} ${context.tr('jobsCompleted')})',
+                              style: GoogleFonts.poppins(
+                                color: Colors.grey[600],
+                                fontSize: 11,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
                           ),
                         ],
@@ -145,6 +150,8 @@ class TechnicianCardWidget extends StatelessWidget {
                     ],
                   ),
                 ),
+
+                const SizedBox(width: 6),
 
                 // Distance Badge
                 Container(
@@ -162,7 +169,7 @@ class TechnicianCardWidget extends StatelessWidget {
                       Text(
                         item.distanceInKm > 0
                             ? '${item.distanceInKm.toStringAsFixed(1)} km'
-                            : 'Nearby',
+                            : context.tr('currentLocation'),
                         style: GoogleFonts.poppins(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -206,16 +213,21 @@ class TechnicianCardWidget extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '${tech.experience} Yrs Exp • Visit: PKR ${tech.visitingCharges.toStringAsFixed(0)}',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey[700],
+                Expanded(
+                  child: Text(
+                    '${tech.experience} ${context.tr('yrsExp')} • ${context.tr('visitingCharges')}: PKR ${tech.visitingCharges.toStringAsFixed(0)}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[700],
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
+                const SizedBox(width: 8),
                 Text(
-                  tech.isAvailable ? 'Available 🟢' : 'Busy 🔴',
+                  tech.isAvailable ? '${context.tr('available')} 🟢' : '${context.tr('notAvailable')} 🔴',
                   style: GoogleFonts.poppins(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -234,7 +246,7 @@ class TechnicianCardWidget extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: () => _makeCall(context),
                     icon: const Icon(Icons.call, size: 16),
-                    label: const Text('Call'),
+                    label: Text(context.tr('call')),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.green[700],
                       side: BorderSide(color: Colors.green[700]!),
@@ -248,7 +260,7 @@ class TechnicianCardWidget extends StatelessWidget {
                   child: ElevatedButton.icon(
                     onPressed: () => _openChat(context),
                     icon: const Icon(Icons.chat_bubble_outline, size: 16),
-                    label: const Text('Chat'),
+                    label: Text(context.tr('chat')),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.indigo,
                       foregroundColor: Colors.white,
@@ -261,7 +273,7 @@ class TechnicianCardWidget extends StatelessWidget {
                 IconButton(
                   onPressed: onTapDetails,
                   icon: const Icon(Icons.info_outline, color: Colors.grey),
-                  tooltip: 'Full Details',
+                  tooltip: context.tr('fullDetails'),
                 ),
               ],
             ),

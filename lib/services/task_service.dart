@@ -196,6 +196,7 @@ class TaskService {
           category: task.category,
           customerName: task.customerName,
           technicianIds: matchingTechIds,
+          taskTitle: '',
         );
         print('📤 Sent notifications to ${matchingTechIds.length} technicians');
       } else {
@@ -245,6 +246,7 @@ class TaskService {
           taskId: taskId,
           category: category,
           technicianName: technicianName,
+          taskTitle: '',
         );
         print('📤 Notification sent to customer');
       }
@@ -298,6 +300,7 @@ class TaskService {
           customerId: customerId,
           taskId: taskId,
           category: category,
+          taskTitle: '',
         );
         print('📤 Notification sent to customer');
       }
@@ -339,7 +342,7 @@ class TaskService {
           customerId: customerId,
           taskId: taskId,
           category: category,
-          technicianName: technicianName,
+          technicianName: technicianName, taskTitle: '',
         );
         print('📤 Notification sent to customer');
       }
@@ -395,7 +398,7 @@ class TaskService {
           customerId: customerId,
           taskId: taskId,
           category: category,
-          technicianName: technicianName,
+          technicianName: technicianName, taskTitle: '',
         );
         print('📤 Notification sent to customer');
       }
@@ -487,7 +490,7 @@ class TaskService {
         technicianId: technicianId,
         taskId: taskId,
         category: category,
-        reason: reason,
+        reason: reason, recipientId: '', taskTitle: '',
       );
       print('📤 Notification sent to both parties');
 
@@ -523,7 +526,7 @@ class TaskService {
           technicianId: technicianId,
           taskId: taskId,
           rating: rating,
-          review: review,
+          review: review, userId: '', reviewerName: '',
         );
         print('📤 Notification sent to technician');
       }

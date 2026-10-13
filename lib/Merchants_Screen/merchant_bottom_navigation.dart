@@ -36,12 +36,12 @@ class MerchantBottomNavigation extends StatelessWidget {
         BottomNavigationBarItem(
           icon: const Icon(Icons.build_outlined),
           activeIcon: const Icon(Icons.build),
-          label: 'Technicians',
+          label: context.tr('technicians'),
         ),
         BottomNavigationBarItem(
-          icon: const Icon(Icons.notifications_outlined),
-          activeIcon: const Icon(Icons.notifications),
-          label: context.tr('notifications'),
+          icon: const Icon(Icons.chat_outlined),
+          activeIcon: const Icon(Icons.chat),
+          label: context.tr('messages'),
         ),
         BottomNavigationBarItem(
           icon: const Icon(Icons.person_outline),
